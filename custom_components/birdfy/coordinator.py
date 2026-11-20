@@ -38,6 +38,7 @@ class BirdfyDeviceState:
     image: bytes | None = None
     image_event_id: str | None = None
     seen_ids: set[str] = field(default_factory=set)
+    recent_events: list[BirdfyEvent] = field(default_factory=list)
     initialized: bool = False
 
     @property
@@ -94,6 +95,7 @@ class BirdfyCoordinator(DataUpdateCoordinator[dict[str, BirdfyDeviceState]]):
 
     async def _async_update_device(self, state: BirdfyDeviceState) -> None:
         events = await self.api.async_get_events(state.device.serial, EVENT_FETCH_LIMIT)
+        state.recent_events = events
 
         if events and not state.initialized:
             # Log the shape of one event once, to help adapt to other models.

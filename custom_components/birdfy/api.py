@@ -276,6 +276,10 @@ class BirdfyApi:
         data = _unwrap(data) if isinstance(data, dict) else data
         url = data.get("url") if isinstance(data, dict) else None
         if not url:
+            _LOGGER.debug(
+                "No snapshot URL; response keys: %s",
+                sorted(data.keys()) if isinstance(data, dict) else type(data).__name__,
+            )
             return None
         try:
             async with self._session.get(url, timeout=REQUEST_TIMEOUT) as resp:

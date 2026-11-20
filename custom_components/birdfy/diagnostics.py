@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -11,31 +12,45 @@ from homeassistant.core import HomeAssistant
 from .const import CONF_PASSWORD_HASH, CONF_UDID
 from .coordinator import BirdfyConfigEntry
 
-TO_REDACT = {
-    CONF_EMAIL,
-    CONF_PASSWORD_HASH,
-    CONF_UDID,
-    "serialNumber",
-    "deviceSn",
-    "sn",
-    "addxSn",
-    "serial",
-    "mac",
-    "macAddress",
-    "ip",
-    "wifiName",
-    "ssid",
-    "userId",
-    "userID",
-    "ownerId",
-    "token",
-    "url",
-    "recordUrl",
-    "picUrl",
-    "imageUrl",
-    "thumbnail",
-    "description",
-}
+TO_REDACT = {CONF_EMAIL, CONF_PASSWORD_HASH, CONF_UDID}
+
+# Any key containing one of these fragments is redacted (case-insensitive).
+SENSITIVE_FRAGMENTS = (
+    "email", "owner", "nickname", "mac", "serial", "sn", "user", "token",
+    "url", "pic", "endpoint", "ssid", "wifi", "deviceid", "groupid", "phone",
+)
+
+
+def _redact(value: Any) -> Any:
+    """Recursively redact anything that could identify the account or device."""
+    if isinstance(value, dict):
+        out = {}
+        for key, val in value.items():
+            k = str(key).lower()
+            if k in ("ip", "ipaddress", "localip") or any(
+                frag in k for frag in SENSITIVE_FRAGMENTS
+            ):
+                out[key] = "**REDACTED**"
+            else:
+                out[key] = _redact(val)
+        return out
+    if isinstance(value, list):
+        return [_redact(v) for v in value]
+    if isinstance(value, str) and ("http" in value or "@" in value or "/" in value):
+        return "**REDACTED**"
+    return value
+
+
+def _event_summary(raw: dict[str, Any]) -> dict[str, Any]:
+    data = dict(raw)
+    desc = data.get("description")
+    if isinstance(desc, str):
+        try:
+            data["description"] = json.loads(desc)
+        except ValueError:
+            data["description"] = "<not json>"
+    return _redact(data)
+
 
 
 async def async_get_config_entry_diagnostics(
@@ -45,13 +60,18 @@ async def async_get_config_entry_diagnostics(
     devices = []
     for state in coordinator.states.values():
         last = state.last_event
+        status_counts: dict[str, int] = {}
+        for e in state.recent_events:
+            key = f"type={e.raw.get('type')} ai={e.raw.get('aiRecognitionStatus')}"
+            status_counts[key] = status_counts.get(key, 0) + 1
         devices.append(
             {
-                "device": async_redact_data(state.device.raw, TO_REDACT),
+                "device": _redact(state.device.raw),
                 "visits_today": state.visits_today,
                 "has_image": state.image is not None,
                 "last_event_label": last.label if last else None,
-                "last_event_raw": async_redact_data(last.raw, TO_REDACT) if last else None,
+                "recent_status_counts": status_counts,
+                "recent_events": [_event_summary(e.raw) for e in state.recent_events],
             }
         )
     return {

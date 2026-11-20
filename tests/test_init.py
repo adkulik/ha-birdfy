@@ -16,13 +16,16 @@ from custom_components.birdfy.api import BirdfyAuthError, BirdfyDevice, BirdfyEv
 from custom_components.birdfy.const import CONF_PASSWORD_HASH, CONF_UDID, DOMAIN
 from custom_components.birdfy.diagnostics import async_get_config_entry_diagnostics
 
-DEVICE = BirdfyDevice(serial="SN123", name="Etető", model="Cam2 Pro", raw={"serialNumber": "SN123", "deviceName": "Etető"})
+DEVICE = BirdfyDevice(serial="SN123", name="Etető", model="Cam2 Pro", raw={
+    "serialNumber": "SN123", "deviceName": "Etető", "ownerEmail": "own@x.hu", "ownerNickname": "Zsiga",
+    "wifiMacAddress": "e8:f4:94:00:00:01", "deviceID": 99, "ownerID": 42, "region": "eu-central-1"})
 
 
 def ev(alarm_id, label, ago):
     return BirdfyEvent.from_api(
         {"alarmId": alarm_id, "alertTime": int((time.time() - ago) * 1000), "label": label,
-         "description": '{"recordUrl": "https://secret"}'}
+         "description": '{"recordUrl": "https://secret", "species": "' + label + '"}',
+         "pic": "nvs-pic:owner/abc.jpeg", "aiRecognitionStatus": "auto_nobirds", "type": 50}
     )
 
 
@@ -101,7 +104,10 @@ async def test_setup_and_new_visit(hass):
 
         diag = await async_get_config_entry_diagnostics(hass, entry)
         text = str(diag)
-        assert "SN123" not in text and "secret" not in text and "a@b.hu" not in text
+        for leak in ("SN123", "secret", "a@b.hu", "own@x.hu", "Zsiga", "e8:f4", "abc.jpeg"):
+            assert leak not in text, leak
+        assert "auto_nobirds" in text and "eu-central-1" in text
+        assert diag["devices"][0]["recent_events"][0]["description"]["species"] == "Robin"
         assert diag["devices"][0]["last_event_label"] == "Robin"
 
         assert await hass.config_entries.async_unload(entry.entry_id)
