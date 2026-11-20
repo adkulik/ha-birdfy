@@ -48,9 +48,15 @@ For each camera on the account:
 
 ### Installation (HACS)
 
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
+
+Click the button above, or add the repository by hand:
+
 1. HACS → ⋮ → **Custom repositories** → add `https://github.com/adkulik/ha-birdfy`, type **Integration**.
 2. Install **Birdfy**, then restart Home Assistant.
-3. Settings → Devices & services → **Add integration** → **Birdfy**, and sign in.
+3. Settings → Devices & services → **Add integration** → **Birdfy**, and sign in, or click:
+
+[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy)
 
 ### Example automation
 
@@ -129,9 +135,15 @@ Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
 
 ### Telepítés (HACS)
 
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
+
+Kattints a fenti gombra, vagy add hozzá kézzel a tárolót:
+
 1. HACS → ⋮ → **Egyéni tárolók** → `https://github.com/adkulik/ha-birdfy`, típus: **Integráció**.
 2. Telepítsd a **Birdfy**-t, majd indítsd újra a Home Assistantot.
-3. Beállítások → Eszközök és szolgáltatások → **Integráció hozzáadása** → **Birdfy**, és jelentkezz be.
+3. Beállítások → Eszközök és szolgáltatások → **Integráció hozzáadása** → **Birdfy**, és jelentkezz be, vagy kattints ide:
+
+[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy)
 
 ### Hibakeresés
 
