@@ -1,5 +1,7 @@
 # Birdfy for Home Assistant
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/adkulik)
+
 [🇬🇧 English](#english) | [🇭🇺 Magyar](#magyar)
 
 ---
@@ -96,6 +98,14 @@ If something does not work on your model, enable debug logging for
 `custom_components.birdfy`, and download the diagnostics from the integration page.
 Open an issue with both (they contain no passwords or tokens).
 
+### Support
+
+This integration is free and will stay free. If you find it useful, you can support further development:
+
+<a href="https://buymeacoffee.com/adkulik"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="50"></a>
+
+Recurring support is available through [GitHub Sponsors](https://github.com/sponsors/adkulik).
+
 ### Credits
 
 The cloud protocol details come from community reverse-engineering work, in
@@ -189,5 +199,13 @@ Kattints a fenti gombra, vagy add hozzá kézzel a tárolót:
 Ha a modelleden valami nem működik, kapcsold be a debug naplózást a
 `custom_components.birdfy`-ra, és töltsd le a diagnosztikát az integráció
 oldaláról. Mindkettőt csatold egy issue-hoz (jelszót és tokent nem tartalmaznak).
+
+### Támogatás
+
+Az integráció ingyenes, és az is marad. Ha hasznosnak találod, támogathatod a további fejlesztést:
+
+<a href="https://buymeacoffee.com/adkulik"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="50"></a>
+
+Rendszeres támogatás a [GitHub Sponsors](https://github.com/sponsors/adkulik) oldalon lehetséges.
 
 Nem áll kapcsolatban a Birdfy-jal vagy a Netvue-val.
