@@ -10,7 +10,7 @@ from .api import BirdfyApi
 from .const import CONF_PASSWORD_HASH, CONF_UDID
 from .coordinator import BirdfyConfigEntry, BirdfyCoordinator
 
-PLATFORMS: list[Platform] = [Platform.EVENT, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.EVENT, Platform.IMAGE, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: BirdfyConfigEntry) -> bool:

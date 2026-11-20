@@ -67,6 +67,11 @@
         "name": "Mai mozgásesemények",
         "unit_of_measurement": "esemény"
       }
+    },
+    "image": {
+      "last_visit_photo": {
+        "name": "Utolsó látogatás fotója"
+      }
     }
   }
 }

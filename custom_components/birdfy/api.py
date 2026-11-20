@@ -28,6 +28,7 @@ USER_AGENT = "Birdfy/1.19.2 (build 123960) NetvueSDK/1.6.1 Android/12"
 LOGIN_URL = "https://localweb.nvts.co/v1/users/login/v2"
 DEFAULT_LOCAL_ENDPOINT = "https://localweb.nvts.co"
 DEFAULT_REGION = "eu-central-1"
+CENTRAL_API = "https://centralapi.nvts.co"
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
 
@@ -106,6 +107,25 @@ class BirdfyEvent:
     confidence: int | None
     candidates: list[str]
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    details: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    def download_request(self, serial: str) -> dict[str, Any]:
+        """The eventList item the Birdfy web app sends to /event/downloadLink."""
+        pictures = self.raw.get("pictureList") or ""
+        if isinstance(pictures, str):
+            pictures = [p for p in pictures.split(",") if p]
+        item: dict[str, Any] = {
+            "serialnumber": serial,
+            "alarmId": self.alarm_id,
+            "dataGroup": ["pic"],
+            "pic": self.raw.get("pic") or "",
+            "pictureList": pictures,
+            "type": self.raw.get("type", 50),
+        }
+        for key in ("recordDir", "aiRecordDir"):
+            if self.details.get(key):
+                item[key] = self.details[key]
+        return item
 
     @property
     def is_bird(self) -> bool:
@@ -172,6 +192,7 @@ class BirdfyEvent:
             confidence=confidence,
             candidates=candidates,
             raw=data,
+            details=desc,
         )
 
 
@@ -263,15 +284,29 @@ class BirdfyApi:
         }
 
     async def _get(self, url: str, params: dict[str, Any] | None = None) -> Any:
-        """Signed GET; logs in first and retries once on an auth error."""
+        return await self._request("GET", url, params=params)
+
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        params: dict[str, Any] | None = None,
+        json_body: Any = None,
+    ) -> Any:
+        """Signed request; logs in first and retries once on an expired session."""
         for attempt in (1, 2):
             if self._token is None:
                 await self.async_login()
             try:
-                async with self._session.get(
+                headers = self._auth_headers()
+                if json_body is not None:
+                    headers["Content-Type"] = "application/json"
+                async with self._session.request(
+                    method,
                     url,
-                    headers=self._auth_headers(),
+                    headers=headers,
                     params=params,
+                    json=json_body,
                     timeout=REQUEST_TIMEOUT,
                 ) as resp:
                     status = resp.status
@@ -313,3 +348,36 @@ class BirdfyApi:
         events = [e for e in (BirdfyEvent.from_api(i) for i in items if isinstance(i, dict)) if e]
         events.sort(key=lambda e: e.timestamp, reverse=True)
         return events
+
+    async def async_get_event_picture(self, serial: str, event: BirdfyEvent) -> bytes | None:
+        """Download the main photo of one event.
+
+        The temporary download link is used once and never stored or logged.
+        """
+        data = await self._request(
+            "POST",
+            f"{CENTRAL_API}/event/downloadLink",
+            json_body={"eventList": [event.download_request(serial)]},
+        )
+        data = _unwrap(data) if isinstance(data, dict) else data
+        items = data.get("eventList") if isinstance(data, dict) else None
+        urls: list[str] = []
+        for item in items or []:
+            if isinstance(item, dict) and str(item.get("alarmId")) == event.alarm_id:
+                urls = [u for u in item.get("picList") or [] if isinstance(u, str)]
+        if not urls:
+            _LOGGER.debug(
+                "No photo link for event %s; response keys: %s",
+                event.alarm_id,
+                sorted(data.keys()) if isinstance(data, dict) else type(data).__name__,
+            )
+            return None
+        try:
+            async with self._session.get(urls[0], timeout=REQUEST_TIMEOUT) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug("Photo download failed: HTTP %s", resp.status)
+                    return None
+                return await resp.read()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            _LOGGER.debug("Photo download failed: %s", type(err).__name__)
+            return None

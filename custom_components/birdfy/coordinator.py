@@ -39,6 +39,9 @@ class BirdfyDeviceState:
     today_motion_ids: set[str] = field(default_factory=set)
     seen_ids: set[str] = field(default_factory=set)
     initialized: bool = False
+    photo: bytes | None = None
+    photo_event: BirdfyEvent | None = None
+    photo_attempts: dict[str, int] = field(default_factory=dict)
 
     @property
     def visits_today(self) -> int:
@@ -135,6 +138,7 @@ class BirdfyCoordinator(DataUpdateCoordinator[dict[str, BirdfyDeviceState]]):
 
         if visits:
             state.last_visit = visits[0]
+            await self._async_update_photo(state, visits[0])
 
         if state.new_visits:
             _LOGGER.debug(
@@ -143,3 +147,22 @@ class BirdfyCoordinator(DataUpdateCoordinator[dict[str, BirdfyDeviceState]]):
                 len(state.new_visits),
                 state.new_visits[-1].species,
             )
+
+    async def _async_update_photo(self, state: BirdfyDeviceState, visit: BirdfyEvent) -> None:
+        """Download the photo of the latest visit once (a few tries at most)."""
+        if state.photo_event and state.photo_event.alarm_id == visit.alarm_id:
+            return
+        tries = state.photo_attempts.get(visit.alarm_id, 0)
+        if tries >= 3:
+            return
+        state.photo_attempts = {visit.alarm_id: tries + 1}
+        try:
+            photo = await self.api.async_get_event_picture(state.device.serial, visit)
+        except BirdfyAuthError:
+            raise
+        except BirdfyError as err:
+            _LOGGER.debug("Could not fetch the visit photo: %s", err)
+            return
+        if photo:
+            state.photo = photo
+            state.photo_event = visit

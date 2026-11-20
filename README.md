@@ -7,10 +7,10 @@
 ## English
 
 A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue).
-It brings **bird visits** into Home Assistant: which species visited, when, and a
-daily count. There is no live video, only visits.
+It brings **bird visits** into Home Assistant: which species visited, when, a
+photo, and a daily count. There is no live video, only visits.
 
-> **Status: early test version (0.2), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
+> **Status: early test version (0.3), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
@@ -25,6 +25,7 @@ For each camera on the account:
 | `sensor.<camera>_last_visit` | Time of the last visit |
 | `sensor.<camera>_visits_today` | Bird visits today, with a per-species breakdown in the `species` attribute (resets at midnight) |
 | `sensor.<camera>_motion_events_today` | All motion events today, birds or not (disabled by default) |
+| `image.<camera>_last_visit_photo` | Photo of the last bird visit |
 
 A **visit** is a motion event in which Birdfy's AI recognised at least one bird.
 Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
@@ -35,7 +36,8 @@ Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
   the integration options). A visit shows up in Home Assistant with that much delay.
 - Species names come from Birdfy's own AI recognition (in English), which may
   need an active Birdfy subscription.
-- Visit photos are not available yet.
+- The photo of the latest visit is downloaded once and kept in memory only;
+  its temporary download link is not stored or logged.
 - Visits that happened before the integration started do not fire events.
 
 ### Security and privacy
@@ -70,6 +72,8 @@ actions:
   - action: notify.mobile_app_iphone
     data:
       message: "{{ state_attr('event.feeder_bird_visit', 'species') or 'A bird' }} is at the feeder"
+      data:
+        image: /api/image_proxy/image.feeder_last_visit_photo
 ```
 
 ### Troubleshooting
@@ -93,9 +97,9 @@ Not affiliated with Birdfy or Netvue.
 
 Home Assistant integráció a **Birdfy** madáretető-kamerákhoz (gyártó: Netvue).
 A **madárlátogatásokat** hozza be a Home Assistantbe: milyen madár jött, mikor,
-és napi számlálóval. Élő videó nincs benne, csak a látogatások.
+fotóval és napi számlálóval. Élő videó nincs benne, csak a látogatások.
 
-> **Állapot: korai tesztverzió (0.2), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
+> **Állapot: korai tesztverzió (0.3), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
 > integráció a közösség által visszafejtett működésre épül. Még nincs minden
 > Birdfy-modellen kipróbálva.
 
@@ -110,6 +114,7 @@ Kamerákként:
 | `sensor.<kamera>_last_visit` | Az utolsó látogatás ideje |
 | `sensor.<kamera>_visits_today` | A mai madárlátogatások száma, fajonkénti bontással a `species` attribútumban (éjfélkor nullázódik) |
 | `sensor.<kamera>_motion_events_today` | Az összes mai mozgásesemény, madárral vagy anélkül (alapból kikapcsolva) |
+| `image.<kamera>_last_visit_photo` | Az utolsó madárlátogatás fotója |
 
 **Látogatásnak** az a mozgásesemény számít, amelyen a Birdfy MI-je legalább egy
 madarat felismert. A madár nélküli mozgás (szél, mókus, macska) nem látogatás.
@@ -122,7 +127,8 @@ Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
   ez az integráció beállításaiban módosítható). Egy látogatás ennyi késéssel
   jelenik meg a Home Assistantben.
 - A fajneveket a Birdfy saját MI-felismerése adja (angolul), ehhez Birdfy-előfizetés kellhet.
-- A látogatások fotója egyelőre nem érhető el.
+- Az utolsó látogatás fotója egyszer töltődik le, és csak a memóriában marad;
+  az ideiglenes letöltési link nincs tárolva és naplózva.
 - Az integráció indulása előtti látogatásokra nem jön esemény.
 
 ### Biztonság és adatvédelem

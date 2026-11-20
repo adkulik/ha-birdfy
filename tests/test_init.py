@@ -47,6 +47,7 @@ def api_patch(events):
         patch(f"{p}.user_id", "42"),
         patch(f"{p}.async_get_devices", AsyncMock(return_value=[DEVICE])),
         patch(f"{p}.async_get_events", AsyncMock(side_effect=lambda *a, **k: list(events))),
+        patch(f"{p}.async_get_event_picture", AsyncMock(side_effect=lambda sn, e: f"JPEG-{e.alarm_id}".encode())),
     ]
 
 
@@ -101,7 +102,8 @@ async def test_setup_and_new_visit(hass):
         assert today.attributes["species"] == {"Great Tit": 1, "Blue Tit": 1}
         event_state = hass.states.get("event.eteto_bird_visit")
         assert event_state.state == "unknown"  # no event fired for old visits
-        assert hass.states.get("image.eteto_last_visit_photo") is None
+        photo = hass.states.get("image.eteto_last_visit_photo")
+        assert photo.state != "unknown" and photo.attributes["species"] == "Great Tit"
 
         # Motion without a bird: no event.
         events.insert(0, ev("e4", None, 10))
@@ -120,6 +122,8 @@ async def test_setup_and_new_visit(hass):
         assert event_state.attributes["event_type"] == "bird_visit"
         assert hass.states.get("sensor.eteto_last_visitor").state == "Robin"
         assert hass.states.get("sensor.eteto_visits_today").state == "3"
+        assert hass.states.get("image.eteto_last_visit_photo").attributes["species"] == "Robin"
+        assert entry.runtime_data.states["SN123"].photo == b"JPEG-e5"
 
         diag = await async_get_config_entry_diagnostics(hass, entry)
         text = str(diag)

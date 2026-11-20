@@ -69,6 +69,7 @@ async def async_get_config_entry_diagnostics(
                 "device": _redact(state.device.raw),
                 "visits_today": state.visits_today,
                 "motion_events_today": state.motion_events_today,
+                "has_photo": state.photo is not None,
                 "species_today": state.species_today,
                 "last_visit_species": last.species if last else None,
                 "recent_status_counts": status_counts,

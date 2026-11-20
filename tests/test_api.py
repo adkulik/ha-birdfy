@@ -27,12 +27,19 @@ async def fake(socket_enabled, aiohttp_server, monkeypatch):
             return web.json_response({}, status=401)
         return web.json_response({"events": [
             {"alarmId": "a1", "alertTime": 1700000000000, "aiRecognitionStatus": "auto_success",
-             "description": '{"aiLabels": {"1": [{"name": "bird", "objects": [{"desc": "Blue Tit", "track": "1"}]}]}}'},
+             "pic": "b:k/1.jpeg", "pictureList": "b:k/1.jpeg,b:k/2.jpeg", "type": 50,
+             "description": '{"recordDir": "b:rec/", "aiLabels": {"1": [{"name": "bird", "objects": [{"desc": "Blue Tit", "track": "1"}]}]}}'},
             {"alarmId": "a2", "alertTime": 1700000100000, "aiRecognitionStatus": "auto_nobirds", "description": "bad json"},
         ]})
 
-    async def pic(request):
-        return web.json_response({"url": str(request.url.with_path("/img.jpg"))})
+    async def download_link(request):
+        body = await request.json()
+        item = body["eventList"][0]
+        assert item["serialnumber"] == "S1" and item["dataGroup"] == ["pic"]
+        assert item["pictureList"] == ["b:k/1.jpeg", "b:k/2.jpeg"]
+        assert item["recordDir"] == "b:rec/"
+        return web.json_response({"eventList": [{"alarmId": item["alarmId"],
+            "picList": [str(request.url.with_path("/img.jpg"))]}]})
 
     async def img(request):
         return web.Response(body=b"JPEG")
@@ -41,12 +48,13 @@ async def fake(socket_enabled, aiohttp_server, monkeypatch):
     app.router.add_post("/login", login)
     app.router.add_get("/v1/devices/v3", devices)
     app.router.add_get("/devices/{sn}/events", events)
-    app.router.add_get("/devices/{sn}/events/{id}/pic", pic)
+    app.router.add_post("/event/downloadLink", download_link)
     app.router.add_get("/img.jpg", img)
     server = await aiohttp_server(app)
     base = str(server.make_url(""))
     monkeypatch.setattr(api_mod, "LOGIN_URL", base + "/login")
     monkeypatch.setattr(api_mod, "DEFAULT_LOCAL_ENDPOINT", base)
+    monkeypatch.setattr(api_mod, "CENTRAL_API", base)
     monkeypatch.setattr(BirdfyApi, "api_base", property(lambda self: base))
     return state
 
@@ -63,6 +71,7 @@ async def test_flow(fake, aiohttp_client_session=None):
         assert evs[1].is_bird and evs[1].primary_species == "Blue Tit" and evs[1].bird_count == 1
         assert evs[1].timestamp == 1700000000
         assert fake["logins"] == 2  # re-login after 401
+        assert await api.async_get_event_picture("S1", evs[1]) == b"JPEG"
 
         bad = BirdfyApi(s, "a@b.hu", hash_password("nope"), "android-1")
         with pytest.raises(BirdfyAuthError):

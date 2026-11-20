@@ -67,6 +67,11 @@
         "name": "Motion events today",
         "unit_of_measurement": "events"
       }
+    },
+    "image": {
+      "last_visit_photo": {
+        "name": "Last visit photo"
+      }
     }
   }
 }
