@@ -73,6 +73,14 @@
       "last_visit_photo": {
         "name": "Utolsó látogatás fotója"
       }
+    },
+    "camera": {
+      "live_main": {
+        "name": "Élőkép"
+      },
+      "live_secondary": {
+        "name": "Élőkép (második kamera)"
+      }
     }
   },
   "selector": {

@@ -8,9 +8,9 @@
 
 A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue).
 It brings **bird visits** into Home Assistant: which species visited, when, a
-photo, and a daily count. There is no live video, only visits.
+photo, a daily count, and a **live view** of the camera.
 
-> **Status: early test version (0.4), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
+> **Status: early test version (0.5), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
@@ -26,6 +26,8 @@ For each camera on the account:
 | `sensor.<camera>_visits_today` | Bird visits today, with a per-species breakdown in the `species` attribute (resets at midnight) |
 | `sensor.<camera>_motion_events_today` | All motion events today, birds or not (disabled by default) |
 | `image.<camera>_last_visit_photo` | Photo of the last bird visit |
+| `camera.<camera>_live_view` | Live view (main lens). Its still image is the last visit photo |
+| `camera.<camera>_live_view_second_lens` | Live view of the second lens (dual-lens models) |
 
 A **visit** is a motion event in which Birdfy's AI recognised at least one bird.
 Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
@@ -42,6 +44,15 @@ Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
 - The photo of the latest visit is downloaded once and kept in memory only;
   its temporary download link is not stored or logged.
 - Visits that happened before the integration started do not fire events.
+
+### Live view
+
+The camera entities use Home Assistant's built-in WebRTC support, so any camera
+card (or the more-info dialog) shows the live picture, also in the Home
+Assistant app. The video goes from the Birdfy relay server straight to your
+browser; Home Assistant only passes the connection setup through, so it does no
+video processing. The camera wakes up only while you are watching, and a live
+session is closed after 10 minutes to save the battery.
 
 ### Security and privacy
 
@@ -100,9 +111,9 @@ Not affiliated with Birdfy or Netvue.
 
 Home Assistant integráció a **Birdfy** madáretető-kamerákhoz (gyártó: Netvue).
 A **madárlátogatásokat** hozza be a Home Assistantbe: milyen madár jött, mikor,
-fotóval és napi számlálóval. Élő videó nincs benne, csak a látogatások.
+fotóval, napi számlálóval és a kamera **élőképével**.
 
-> **Állapot: korai tesztverzió (0.4), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
+> **Állapot: korai tesztverzió (0.5), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
 > integráció a közösség által visszafejtett működésre épül. Még nincs minden
 > Birdfy-modellen kipróbálva.
 
@@ -118,6 +129,8 @@ Kamerákként:
 | `sensor.<kamera>_visits_today` | A mai madárlátogatások száma, fajonkénti bontással a `species` attribútumban (éjfélkor nullázódik) |
 | `sensor.<kamera>_motion_events_today` | Az összes mai mozgásesemény, madárral vagy anélkül (alapból kikapcsolva) |
 | `image.<kamera>_last_visit_photo` | Az utolsó madárlátogatás fotója |
+| `camera.<kamera>_live_view` | Élőkép (fő kamera). Állóképként az utolsó látogatás fotóját mutatja |
+| `camera.<kamera>_live_view_second_lens` | A második kamera élőképe (kétkamerás modelleknél) |
 
 **Látogatásnak** az a mozgásesemény számít, amelyen a Birdfy MI-je legalább egy
 madarat felismert. A madár nélküli mozgás (szél, mókus, macska) nem látogatás.
@@ -137,6 +150,15 @@ Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
 - Az utolsó látogatás fotója egyszer töltődik le, és csak a memóriában marad;
   az ideiglenes letöltési link nincs tárolva és naplózva.
 - Az integráció indulása előtti látogatásokra nem jön esemény.
+
+### Élőkép
+
+A kamera-entitások a Home Assistant beépített WebRTC-támogatását használják, így
+bármelyik kamerakártya (vagy a részletek ablak) mutatja az élőképet, a Home
+Assistant appban is. A videó a Birdfy relay-szerveréről közvetlenül a
+böngészőbe megy; a Home Assistant csak a kapcsolat felépítését közvetíti, videót
+nem dolgoz fel. A kamera csak nézés közben ébred fel, és egy élő munkamenet
+10 perc után lezárul, hogy kímélje az akkumulátort.
 
 ### Biztonság és adatvédelem
 

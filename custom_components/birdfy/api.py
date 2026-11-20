@@ -29,6 +29,9 @@ LOGIN_URL = "https://localweb.nvts.co/v1/users/login/v2"
 DEFAULT_LOCAL_ENDPOINT = "https://localweb.nvts.co"
 DEFAULT_REGION = "eu-central-1"
 CENTRAL_API = "https://centralapi.nvts.co"
+PLAY_API = "https://api2.netvue.co"
+MEDIA_BACKEND = "fused-v1"
+
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
 
@@ -38,6 +41,9 @@ class BirdfyError(Exception):
 
 class BirdfyAuthError(BirdfyError):
     """Login failed or the session was rejected."""
+
+class BirdfyLiveError(BirdfyError):
+    """Live view could not be started."""
 
 
 def hash_password(password: str) -> str:
@@ -381,3 +387,75 @@ class BirdfyApi:
         except (aiohttp.ClientError, TimeoutError) as err:
             _LOGGER.debug("Photo download failed: %s", type(err).__name__)
             return None
+
+    # --- Live view (WebRTC through the Birdfy relay, as the Birdfy web app does) ---
+
+    async def async_live_start(self, serial: str, sensor: int) -> str:
+        """Ask the camera for a live session; returns the relay session key."""
+        data = await self._request(
+            "POST",
+            f"https://{self._region}-api2.netvue.co/devices/{serial}/play",
+            json_body={
+                "serialNumber": serial,
+                "callType": 0,
+                "sensorId": sensor,
+                "provider": "AGORA_WEBRTC",
+                "mediaBackendVersion": MEDIA_BACKEND,
+            },
+        )
+        data = _unwrap(data) if isinstance(data, dict) else {}
+        provider = data.get("provider")
+        session_key = data.get("sessionKey")
+        if provider != "NV_RELAY" or not session_key:
+            _LOGGER.debug(
+                "Live start not usable: provider=%s keys=%s", provider, sorted(data.keys())
+            )
+            raise BirdfyLiveError(f"Unsupported live provider: {provider}")
+        return str(session_key)
+
+    async def async_live_open(
+        self, serial: str, sensor: int, session_key: str, external_id: str, offer: str
+    ) -> str:
+        """Send the WebRTC offer to the relay; returns the SDP answer."""
+        data = await self._request(
+            "POST",
+            f"{PLAY_API}/devices/{serial}/play",
+            json_body={
+                "serialNumber": serial,
+                "provider": "NV_RELAY",
+                "mediaBackendVersion": MEDIA_BACKEND,
+                "callType": 0,
+                "sensorId": sensor,
+                "sessionKey": session_key,
+                "rtcAction": "open",
+                "rtcClient": "web-client",
+                "externalSessionId": external_id,
+                "offer": offer,
+            },
+        )
+        data = _unwrap(data) if isinstance(data, dict) else {}
+        answer = data.get("rtcAnswer")
+        if not isinstance(answer, str) or not answer.startswith("v=0"):
+            _LOGGER.debug("No SDP answer; response keys: %s", sorted(data.keys()))
+            raise BirdfyLiveError("The relay did not return an answer")
+        return answer
+
+    async def async_live_close(
+        self, serial: str, sensor: int, session_key: str, external_id: str
+    ) -> None:
+        """Close a live session."""
+        await self._request(
+            "POST",
+            f"{PLAY_API}/devices/{serial}/play",
+            json_body={
+                "serialNumber": serial,
+                "provider": "NV_RELAY",
+                "mediaBackendVersion": MEDIA_BACKEND,
+                "callType": 0,
+                "sensorId": sensor,
+                "sessionKey": session_key,
+                "rtcAction": "close",
+                "rtcClient": "web-client",
+                "externalSessionId": external_id,
+            },
+        )

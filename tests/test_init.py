@@ -1,5 +1,6 @@
 """Tests for the Birdfy integration (cloud API mocked)."""
 from datetime import timedelta
+import asyncio
 import json
 import time
 from unittest.mock import AsyncMock, patch
@@ -190,3 +191,70 @@ async def test_hungarian_entities(hass):
     finally:
         for p in patches:
             p.stop()
+
+
+def test_add_candidates():
+    from webrtc_models import RTCIceCandidateInit
+    from custom_components.birdfy.camera import add_candidates
+    offer = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\na=group:BUNDLE 0 1\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:1\r\n"
+    out = add_candidates(offer, [
+        RTCIceCandidateInit("candidate:1 1 udp 2122260223 192.168.1.5 50000 typ host", sdp_mid="0"),
+        RTCIceCandidateInit("candidate:2 1 udp 1686052607 1.2.3.4 50000 typ srflx", sdp_m_line_index=1),
+    ])
+    lines = out.split("\r\n")
+    assert lines.index("a=candidate:1 1 udp 2122260223 192.168.1.5 50000 typ host") < lines.index("m=video 9 UDP/TLS/RTP/SAVPF 96")
+    assert lines[-3] == "a=candidate:2 1 udp 1686052607 1.2.3.4 50000 typ srflx"
+    assert out.endswith("a=end-of-candidates\r\n")
+    assert add_candidates(offer, []) == offer
+
+
+async def test_live_view(hass):
+    from webrtc_models import RTCIceCandidateInit
+    from homeassistant.components.camera import WebRTCAnswer, WebRTCError
+    from homeassistant.helpers import entity_component
+    from custom_components.birdfy.api import BirdfyLiveError
+    events = [ev("e1", "Great Tit", 60)]
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="42", data={
+        CONF_EMAIL: "a@b.hu", CONF_PASSWORD_HASH: "h", CONF_UDID: "android-x"})
+    entry.add_to_hass(hass)
+    p = "custom_components.birdfy.api.BirdfyApi"
+    start = AsyncMock(return_value="SN123_0_LIVING")
+    open_ = AsyncMock(return_value="v=0\r\nanswer\r\n")
+    close = AsyncMock()
+    patches = api_patch(events) + [
+        patch(f"{p}.async_live_start", start), patch(f"{p}.async_live_open", open_), patch(f"{p}.async_live_close", close)]
+    for x in patches:
+        x.start()
+    try:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        cams = [s.entity_id for s in hass.states.async_all("camera")]
+        assert sorted(cams) == ["camera.eteto_live_view", "camera.eteto_live_view_second_lens"]
+        cam = hass.data["entity_components"]["camera"].get_entity("camera.eteto_live_view")
+        assert cam.camera_capabilities.frontend_stream_types == {"web_rtc"}
+        assert await cam.async_camera_image() == b"JPEG-e1"
+
+        msgs = []
+        offer = "v=0\r\na=group:BUNDLE 0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:0\r\n"
+        task = hass.async_create_task(cam.async_handle_async_webrtc_offer(offer, "s1", msgs.append))
+        await asyncio.sleep(0)
+        await cam.async_on_webrtc_candidate("s1", RTCIceCandidateInit("candidate:1 1 udp 1 10.0.0.2 5000 typ host", sdp_mid="0"))
+        await cam.async_on_webrtc_candidate("s1", RTCIceCandidateInit(""))
+        await task
+        assert isinstance(msgs[0], WebRTCAnswer) and msgs[0].answer.startswith("v=0")
+        sent_offer = open_.call_args.args[4]
+        assert "a=candidate:1 1 udp 1 10.0.0.2 5000 typ host" in sent_offer
+        assert start.call_args.args[1] == 0
+        cam.close_webrtc_session("s1")
+        await hass.async_block_till_done()
+        assert close.await_count == 1
+
+        # Error path
+        start.side_effect = BirdfyLiveError("nope")
+        msgs.clear()
+        await cam.async_handle_async_webrtc_offer(offer, "s2", msgs.append)
+        assert isinstance(msgs[0], WebRTCError)
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    finally:
+        for x in patches:
+            x.stop()

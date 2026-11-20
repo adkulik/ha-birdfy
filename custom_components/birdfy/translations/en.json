@@ -73,6 +73,14 @@
       "last_visit_photo": {
         "name": "Last visit photo"
       }
+    },
+    "camera": {
+      "live_main": {
+        "name": "Live view"
+      },
+      "live_secondary": {
+        "name": "Live view (second lens)"
+      }
     }
   },
   "selector": {
