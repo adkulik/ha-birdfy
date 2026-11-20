@@ -12,9 +12,11 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .species import translate
 from .api import BirdfyApi, BirdfyAuthError, BirdfyDevice, BirdfyError, BirdfyEvent
 from .const import (
     CONF_SCAN_INTERVAL,
+    CONF_SPECIES_LANGUAGE,
     DEFAULT_SCAN_INTERVAL,
     DEVICE_REFRESH_INTERVAL,
     DOMAIN,
@@ -51,12 +53,11 @@ class BirdfyDeviceState:
     def motion_events_today(self) -> int:
         return len(self.today_motion_ids)
 
-    @property
-    def species_today(self) -> dict[str, int]:
+    def species_today(self, language: str = "en") -> dict[str, int]:
         """Visits per species today (by each visit's main species)."""
         counts: dict[str, int] = {}
         for visit in self.today_visits.values():
-            name = visit.primary_species or "unknown"
+            name = translate(visit.primary_species, language) or "unknown"
             counts[name] = counts.get(name, 0) + 1
         return dict(sorted(counts.items(), key=lambda kv: -kv[1]))
 
@@ -82,6 +83,17 @@ class BirdfyCoordinator(DataUpdateCoordinator[dict[str, BirdfyDeviceState]]):
         self.api = api
         self.states: dict[str, BirdfyDeviceState] = {}
         self._devices_fetched_at = None
+
+    @property
+    def language(self) -> str:
+        """Language for species names: 'hu' or 'en'."""
+        choice = self.config_entry.options.get(CONF_SPECIES_LANGUAGE, "auto")
+        if choice == "auto":
+            return "hu" if (self.hass.config.language or "").startswith("hu") else "en"
+        return choice
+
+    def translate(self, name: str | None) -> str | None:
+        return translate(name, self.language)
 
     async def _async_refresh_devices(self) -> None:
         now = dt_util.utcnow()

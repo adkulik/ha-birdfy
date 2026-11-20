@@ -34,7 +34,8 @@
       "init": {
         "title": "Birdfy options",
         "data": {
-          "scan_interval": "Check for new visits every"
+          "scan_interval": "Check for new visits every",
+          "species_language": "Language of species names"
         }
       }
     }
@@ -71,6 +72,15 @@
     "image": {
       "last_visit_photo": {
         "name": "Last visit photo"
+      }
+    }
+  },
+  "selector": {
+    "species_language": {
+      "options": {
+        "auto": "Same as Home Assistant",
+        "hu": "Hungarian",
+        "en": "English (as Birdfy sends them)"
       }
     }
   }

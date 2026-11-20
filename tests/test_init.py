@@ -147,3 +147,46 @@ async def test_auth_failure_starts_reauth(hass):
         assert not await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert any(f["context"]["source"] == "reauth" for f in hass.config_entries.flow.async_progress())
+
+
+def test_hungarian_names():
+    from custom_components.birdfy.species import translate
+    assert translate("Great Tit", "hu") == "Széncinege"
+    assert translate("Eurasian Blue Tit", "hu") == "Kék cinege"
+    assert translate("European Robin", "hu") == "Vörösbegy"
+    assert translate("great spotted woodpecker", "hu") == "Nagy fakopáncs"
+    assert translate("Unknown Bird", "hu") == "Unknown Bird"
+    assert translate("Great Tit", "en") == "Great Tit"
+
+
+async def test_hungarian_entities(hass):
+    from custom_components.birdfy.const import CONF_SPECIES_LANGUAGE
+    hass.config.language = "hu"
+    events = [ev("e2", "Great Tit", 60, extra="Eurasian Blue Tit"), ev("e1", "Great Tit", 600)]
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="42", data={
+        CONF_EMAIL: "a@b.hu", CONF_PASSWORD_HASH: "h", CONF_UDID: "android-x"})
+    entry.add_to_hass(hass)
+    patches = api_patch(events)
+    for p in patches:
+        p.start()
+    try:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        visitor = next(s for s in hass.states.async_all("sensor") if s.entity_id.endswith("latogato") or s.entity_id.endswith("last_visitor"))
+        assert visitor.state == "Széncinege"
+        assert visitor.attributes["species_en"] == "Great Tit"
+        assert visitor.attributes["species_list"] == ["Széncinege", "Kék cinege"]
+        assert visitor.attributes["candidates"] == []  # already in species_list
+
+        # Switch to English in the options.
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"scan_interval": 60, CONF_SPECIES_LANGUAGE: "en"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+        visitor = hass.states.get(visitor.entity_id)
+        assert visitor.state == "Great Tit"
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    finally:
+        for p in patches:
+            p.stop()

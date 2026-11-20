@@ -10,7 +10,7 @@ A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue)
 It brings **bird visits** into Home Assistant: which species visited, when, a
 photo, and a daily count. There is no live video, only visits.
 
-> **Status: early test version (0.3), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
+> **Status: early test version (0.4), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
@@ -20,7 +20,7 @@ For each camera on the account:
 
 | Entity | What it shows |
 |---|---|
-| `event.<camera>_bird_visit` | Fires on every new bird visit. Attributes: `species` (main species), `species_list`, `bird_count`, `confidence`, `candidates` (other possible species), `visit_time`, `event_id`. Use it as an automation trigger. |
+| `event.<camera>_bird_visit` | Fires on every new bird visit. Attributes: `species` (main species), `species_en` (English name), `species_list`, `bird_count`, `confidence`, `candidates` (other possible species), `visit_time`, `event_id`. Use it as an automation trigger. |
 | `sensor.<camera>_last_visitor` | Species of the last visit (same attributes as the event) |
 | `sensor.<camera>_last_visit` | Time of the last visit |
 | `sensor.<camera>_visits_today` | Bird visits today, with a per-species breakdown in the `species` attribute (resets at midnight) |
@@ -34,8 +34,11 @@ Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
 
 - The integration polls the Birdfy cloud (every 60 s by default, adjustable in
   the integration options). A visit shows up in Home Assistant with that much delay.
-- Species names come from Birdfy's own AI recognition (in English), which may
-  need an active Birdfy subscription.
+- Species names come from Birdfy's own AI recognition, which may need an active
+  Birdfy subscription. Birdfy sends them in English; the integration can show
+  them in **Hungarian** (common garden and feeder birds). By default it follows
+  the Home Assistant language; change it under the integration's **Configure**
+  options. The English name is always kept in the `species_en` attribute.
 - The photo of the latest visit is downloaded once and kept in memory only;
   its temporary download link is not stored or logged.
 - Visits that happened before the integration started do not fire events.
@@ -99,7 +102,7 @@ Home Assistant integráció a **Birdfy** madáretető-kamerákhoz (gyártó: Net
 A **madárlátogatásokat** hozza be a Home Assistantbe: milyen madár jött, mikor,
 fotóval és napi számlálóval. Élő videó nincs benne, csak a látogatások.
 
-> **Állapot: korai tesztverzió (0.3), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
+> **Állapot: korai tesztverzió (0.4), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
 > integráció a közösség által visszafejtett működésre épül. Még nincs minden
 > Birdfy-modellen kipróbálva.
 
@@ -109,7 +112,7 @@ Kamerákként:
 
 | Entitás | Mit mutat |
 |---|---|
-| `event.<kamera>_bird_visit` | Minden új madárlátogatáskor jelez. Attribútumok: `species` (fő faj), `species_list`, `bird_count` (madarak száma), `confidence`, `candidates` (további lehetséges fajok), `visit_time`, `event_id`. Automatizálás indítására való. |
+| `event.<kamera>_bird_visit` | Minden új madárlátogatáskor jelez. Attribútumok: `species` (fő faj), `species_en` (angol név), `species_list`, `bird_count` (madarak száma), `confidence`, `candidates` (további lehetséges fajok), `visit_time`, `event_id`. Automatizálás indítására való. |
 | `sensor.<kamera>_last_visitor` | Az utolsó látogató faja (ugyanazokkal az attribútumokkal) |
 | `sensor.<kamera>_last_visit` | Az utolsó látogatás ideje |
 | `sensor.<kamera>_visits_today` | A mai madárlátogatások száma, fajonkénti bontással a `species` attribútumban (éjfélkor nullázódik) |
@@ -126,7 +129,11 @@ Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
 - Az integráció időnként lekérdezi a Birdfy felhőt (alapból 60 másodpercenként,
   ez az integráció beállításaiban módosítható). Egy látogatás ennyi késéssel
   jelenik meg a Home Assistantben.
-- A fajneveket a Birdfy saját MI-felismerése adja (angolul), ehhez Birdfy-előfizetés kellhet.
+- A fajneveket a Birdfy saját MI-felismerése adja, ehhez Birdfy-előfizetés kellhet.
+  A Birdfy angolul küldi őket, az integráció **magyarul** is meg tudja jeleníteni
+  (a gyakori kerti és madáretető-látogató fajokat). Alapból a Home Assistant
+  nyelvét követi; ez az integráció **Konfigurálás** menüjében átállítható. Az
+  angol név mindig megmarad a `species_en` attribútumban.
 - Az utolsó látogatás fotója egyszer töltődik le, és csak a memóriában marad;
   az ideiglenes letöltési link nincs tárolva és naplózva.
 - Az integráció indulása előtti látogatásokra nem jön esemény.

@@ -70,7 +70,7 @@ async def async_get_config_entry_diagnostics(
                 "visits_today": state.visits_today,
                 "motion_events_today": state.motion_events_today,
                 "has_photo": state.photo is not None,
-                "species_today": state.species_today,
+                "species_today": state.species_today(),
                 "last_visit_species": last.species if last else None,
                 "recent_status_counts": status_counts,
                 "recent_events": [_event_summary(e.raw) for e in state.recent_events],

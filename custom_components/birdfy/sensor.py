@@ -20,12 +20,13 @@ from homeassistant.util import dt as dt_util
 from .coordinator import BirdfyConfigEntry, BirdfyDeviceState
 from .entity import BirdfyEntity
 from .event import visit_attributes
+from .species import translate
 
 
 @dataclass(frozen=True, kw_only=True)
 class BirdfySensorDescription(SensorEntityDescription):
-    value_fn: Callable[[BirdfyDeviceState], Any]
-    attrs_fn: Callable[[BirdfyDeviceState], dict[str, Any] | None] = lambda s: None
+    value_fn: Callable[[BirdfyDeviceState, str], Any]
+    attrs_fn: Callable[[BirdfyDeviceState, str], dict[str, Any] | None] = lambda s, lang: None
     daily: bool = False
 
 
@@ -38,25 +39,27 @@ def _last_time(state: BirdfyDeviceState) -> datetime | None:
 SENSORS: tuple[BirdfySensorDescription, ...] = (
     BirdfySensorDescription(
         key="last_visitor",
-        value_fn=lambda s: (s.last_visit.primary_species or "unknown") if s.last_visit else None,
-        attrs_fn=lambda s: visit_attributes(s.last_visit) if s.last_visit else None,
+        value_fn=lambda s, lang: (
+            (translate(s.last_visit.primary_species, lang) or "unknown") if s.last_visit else None
+        ),
+        attrs_fn=lambda s, lang: visit_attributes(s.last_visit, lang) if s.last_visit else None,
     ),
     BirdfySensorDescription(
         key="last_visit",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=_last_time,
+        value_fn=lambda s, lang: _last_time(s),
     ),
     BirdfySensorDescription(
         key="visits_today",
         state_class=SensorStateClass.TOTAL,
-        value_fn=lambda s: s.visits_today,
-        attrs_fn=lambda s: {"species": s.species_today},
+        value_fn=lambda s, lang: s.visits_today,
+        attrs_fn=lambda s, lang: {"species": s.species_today(lang)},
         daily=True,
     ),
     BirdfySensorDescription(
         key="motion_events_today",
         state_class=SensorStateClass.TOTAL,
-        value_fn=lambda s: s.motion_events_today,
+        value_fn=lambda s, lang: s.motion_events_today,
         entity_registry_enabled_default=False,
         daily=True,
     ),
@@ -85,11 +88,11 @@ class BirdfySensor(BirdfyEntity, SensorEntity):
 
     @property
     def native_value(self) -> Any:
-        return self.entity_description.value_fn(self.state_data)
+        return self.entity_description.value_fn(self.state_data, self.coordinator.language)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        return self.entity_description.attrs_fn(self.state_data)
+        return self.entity_description.attrs_fn(self.state_data, self.coordinator.language)
 
     @property
     def last_reset(self) -> datetime | None:

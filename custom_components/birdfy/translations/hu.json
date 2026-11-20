@@ -34,7 +34,8 @@
       "init": {
         "title": "Birdfy beállítások",
         "data": {
-          "scan_interval": "Új látogatások ellenőrzése ennyi időnként"
+          "scan_interval": "Új látogatások ellenőrzése ennyi időnként",
+          "species_language": "Madárfajok nyelve"
         }
       }
     }
@@ -71,6 +72,15 @@
     "image": {
       "last_visit_photo": {
         "name": "Utolsó látogatás fotója"
+      }
+    }
+  },
+  "selector": {
+    "species_language": {
+      "options": {
+        "auto": "A Home Assistant nyelve szerint",
+        "hu": "Magyar",
+        "en": "Angol (ahogy a Birdfy adja)"
       }
     }
   }

@@ -10,18 +10,20 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .api import BirdfyEvent
+from .species import translate
 from .const import EVENT_TYPE_VISIT
 from .coordinator import BirdfyConfigEntry
 from .entity import BirdfyEntity
 
 
-def visit_attributes(event: BirdfyEvent) -> dict[str, Any]:
+def visit_attributes(event: BirdfyEvent, language: str = "en") -> dict[str, Any]:
     return {
-        "species": event.primary_species,
-        "species_list": event.species,
+        "species": translate(event.primary_species, language),
+        "species_en": event.primary_species,
+        "species_list": [translate(n, language) for n in event.species],
         "bird_count": event.bird_count,
         "confidence": event.confidence,
-        "candidates": event.candidates,
+        "candidates": [translate(n, language) for n in event.candidates],
         "visit_time": dt_util.utc_from_timestamp(event.timestamp).isoformat(),
         "event_id": event.alarm_id,
     }
@@ -47,5 +49,7 @@ class BirdfyVisitEvent(BirdfyEntity, EventEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         for event in self.state_data.new_visits:
-            self._trigger_event(EVENT_TYPE_VISIT, visit_attributes(event))
+            self._trigger_event(
+                EVENT_TYPE_VISIT, visit_attributes(event, self.coordinator.language)
+            )
         super()._handle_coordinator_update()

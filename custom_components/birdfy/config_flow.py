@@ -22,6 +22,9 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -31,7 +34,9 @@ from .api import BirdfyApi, BirdfyAuthError, BirdfyError, hash_password
 from .const import (
     CONF_PASSWORD_HASH,
     CONF_SCAN_INTERVAL,
+    CONF_SPECIES_LANGUAGE,
     CONF_UDID,
+    SPECIES_LANGUAGES,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL,
@@ -151,9 +156,13 @@ class BirdfyOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(
-                data={CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])}
+                data={
+                    CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+                    CONF_SPECIES_LANGUAGE: user_input[CONF_SPECIES_LANGUAGE],
+                }
             )
         current = self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        language = self.config_entry.options.get(CONF_SPECIES_LANGUAGE, "auto")
         schema = vol.Schema(
             {
                 vol.Required(CONF_SCAN_INTERVAL, default=current): NumberSelector(
@@ -164,7 +173,14 @@ class BirdfyOptionsFlow(OptionsFlow):
                         unit_of_measurement="s",
                         mode=NumberSelectorMode.BOX,
                     )
-                )
+                ),
+                vol.Required(CONF_SPECIES_LANGUAGE, default=language): SelectSelector(
+                    SelectSelectorConfig(
+                        options=SPECIES_LANGUAGES,
+                        translation_key=CONF_SPECIES_LANGUAGE,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

@@ -40,7 +40,7 @@ class BirdfyLastVisitPhoto(BirdfyEntity, ImageEntity):
             return
         self._shown = event.alarm_id
         self._attr_image_last_updated = dt_util.utc_from_timestamp(event.timestamp)
-        self._attr_extra_state_attributes = visit_attributes(event)
+        self._attr_extra_state_attributes = visit_attributes(event, self.coordinator.language)
 
     @callback
     def _handle_coordinator_update(self) -> None:
