@@ -52,13 +52,21 @@
         }
       }
     },
-    "image": {
-      "last_visit_image": { "name": "Last visit photo" }
-    },
     "sensor": {
-      "last_visitor": { "name": "Last visitor" },
-      "last_visit": { "name": "Last visit" },
-      "visits_today": { "name": "Visits today", "unit_of_measurement": "visits" }
+      "last_visitor": {
+        "name": "Last visitor"
+      },
+      "last_visit": {
+        "name": "Last visit"
+      },
+      "visits_today": {
+        "name": "Visits today",
+        "unit_of_measurement": "visits"
+      },
+      "motion_events_today": {
+        "name": "Motion events today",
+        "unit_of_measurement": "events"
+      }
     }
   }
 }

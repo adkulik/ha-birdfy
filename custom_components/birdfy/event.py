@@ -2,14 +2,29 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.event import EventEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from .api import BirdfyEvent
 from .const import EVENT_TYPE_VISIT
 from .coordinator import BirdfyConfigEntry
 from .entity import BirdfyEntity
+
+
+def visit_attributes(event: BirdfyEvent) -> dict[str, Any]:
+    return {
+        "species": event.primary_species,
+        "species_list": event.species,
+        "bird_count": event.bird_count,
+        "confidence": event.confidence,
+        "candidates": event.candidates,
+        "visit_time": dt_util.utc_from_timestamp(event.timestamp).isoformat(),
+        "event_id": event.alarm_id,
+    }
 
 
 async def async_setup_entry(
@@ -22,7 +37,7 @@ async def async_setup_entry(
 
 
 class BirdfyVisitEvent(BirdfyEntity, EventEntity):
-    """Fires when a new visit shows up in the Birdfy cloud."""
+    """Fires when Birdfy recognises a bird in a new event."""
 
     _attr_event_types = [EVENT_TYPE_VISIT]
 
@@ -31,13 +46,6 @@ class BirdfyVisitEvent(BirdfyEntity, EventEntity):
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        for event in self.state_data.new_events:
-            self._trigger_event(
-                EVENT_TYPE_VISIT,
-                {
-                    "species": event.label,
-                    "visit_time": dt_util.utc_from_timestamp(event.timestamp).isoformat(),
-                    "event_id": event.alarm_id,
-                },
-            )
+        for event in self.state_data.new_visits:
+            self._trigger_event(EVENT_TYPE_VISIT, visit_attributes(event))
         super()._handle_coordinator_update()

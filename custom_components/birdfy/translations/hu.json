@@ -52,13 +52,21 @@
         }
       }
     },
-    "image": {
-      "last_visit_image": { "name": "Utolsó látogatás fotója" }
-    },
     "sensor": {
-      "last_visitor": { "name": "Utolsó látogató" },
-      "last_visit": { "name": "Utolsó látogatás" },
-      "visits_today": { "name": "Mai látogatások", "unit_of_measurement": "látogatás" }
+      "last_visitor": {
+        "name": "Utolsó látogató"
+      },
+      "last_visit": {
+        "name": "Utolsó látogatás"
+      },
+      "visits_today": {
+        "name": "Mai látogatások",
+        "unit_of_measurement": "látogatás"
+      },
+      "motion_events_today": {
+        "name": "Mai mozgásesemények",
+        "unit_of_measurement": "esemény"
+      }
     }
   }
 }

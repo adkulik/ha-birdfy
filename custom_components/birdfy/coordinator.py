@@ -31,19 +31,31 @@ class BirdfyDeviceState:
     """What the integration knows about one camera."""
 
     device: BirdfyDevice
-    last_event: BirdfyEvent | None = None
-    new_events: list[BirdfyEvent] = field(default_factory=list)
-    today: date | None = None
-    today_ids: set[str] = field(default_factory=set)
-    image: bytes | None = None
-    image_event_id: str | None = None
-    seen_ids: set[str] = field(default_factory=set)
+    last_visit: BirdfyEvent | None = None
+    new_visits: list[BirdfyEvent] = field(default_factory=list)
     recent_events: list[BirdfyEvent] = field(default_factory=list)
+    today: date | None = None
+    today_visits: dict[str, BirdfyEvent] = field(default_factory=dict)
+    today_motion_ids: set[str] = field(default_factory=set)
+    seen_ids: set[str] = field(default_factory=set)
     initialized: bool = False
 
     @property
     def visits_today(self) -> int:
-        return len(self.today_ids)
+        return len(self.today_visits)
+
+    @property
+    def motion_events_today(self) -> int:
+        return len(self.today_motion_ids)
+
+    @property
+    def species_today(self) -> dict[str, int]:
+        """Visits per species today (by each visit's main species)."""
+        counts: dict[str, int] = {}
+        for visit in self.today_visits.values():
+            name = visit.primary_species or "unknown"
+            counts[name] = counts.get(name, 0) + 1
+        return dict(sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
 def _local_date(ts: float) -> date:
@@ -96,51 +108,38 @@ class BirdfyCoordinator(DataUpdateCoordinator[dict[str, BirdfyDeviceState]]):
     async def _async_update_device(self, state: BirdfyDeviceState) -> None:
         events = await self.api.async_get_events(state.device.serial, EVENT_FETCH_LIMIT)
         state.recent_events = events
-
-        if events and not state.initialized:
-            # Log the shape of one event once, to help adapt to other models.
-            _LOGGER.debug(
-                "First Birdfy event for %s has fields: %s (label=%r)",
-                state.device.name,
-                sorted(events[0].raw.keys()),
-                events[0].label,
-            )
+        visits = [e for e in events if e.is_bird]
 
         today = dt_util.now().date()
         if state.today != today:
             state.today = today
-            state.today_ids = set()
-        state.today_ids.update(e.alarm_id for e in events if _local_date(e.timestamp) == today)
+            state.today_visits = {}
+            state.today_motion_ids = set()
+        for event in events:
+            if _local_date(event.timestamp) == today:
+                state.today_motion_ids.add(event.alarm_id)
+                if event.is_bird:
+                    state.today_visits[event.alarm_id] = event
 
         if state.initialized:
             # Oldest first, so automations see visits in the order they happened.
-            state.new_events = [e for e in reversed(events) if e.alarm_id not in state.seen_ids]
+            state.new_visits = [
+                e for e in reversed(visits) if e.alarm_id not in state.seen_ids
+            ]
         else:
-            state.new_events = []
+            state.new_visits = []
         state.seen_ids.update(e.alarm_id for e in events)
-        # Keep the set bounded.
-        if len(state.seen_ids) > 2000:
+        if len(state.seen_ids) > 5000:
             state.seen_ids = {e.alarm_id for e in events}
         state.initialized = True
 
-        if events:
-            state.last_event = events[0]
-            if state.image_event_id != events[0].alarm_id:
-                try:
-                    image = await self.api.async_get_event_picture(
-                        state.device.serial, events[0].alarm_id
-                    )
-                except BirdfyError as err:
-                    _LOGGER.debug("Could not fetch snapshot: %s", err)
-                    image = None
-                if image:
-                    state.image = image
-                    state.image_event_id = events[0].alarm_id
+        if visits:
+            state.last_visit = visits[0]
 
-        if state.new_events:
+        if state.new_visits:
             _LOGGER.debug(
-                "%s: %d new visit(s), latest %r",
+                "%s: %d new visit(s), latest %s",
                 state.device.name,
-                len(state.new_events),
-                state.new_events[-1].label,
+                len(state.new_visits),
+                state.new_visits[-1].species,
             )

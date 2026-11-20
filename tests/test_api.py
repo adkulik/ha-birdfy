@@ -26,8 +26,9 @@ async def fake(socket_enabled, aiohttp_server, monkeypatch):
             state["expire_once"] = False
             return web.json_response({}, status=401)
         return web.json_response({"events": [
-            {"alarmId": "a1", "alertTime": 1700000000000, "label": "Blue Tit", "description": "{}"},
-            {"alarmId": "a2", "alertTime": 1700000100000, "label": "", "description": "bad json"},
+            {"alarmId": "a1", "alertTime": 1700000000000, "aiRecognitionStatus": "auto_success",
+             "description": '{"aiLabels": {"1": [{"name": "bird", "objects": [{"desc": "Blue Tit", "track": "1"}]}]}}'},
+            {"alarmId": "a2", "alertTime": 1700000100000, "aiRecognitionStatus": "auto_nobirds", "description": "bad json"},
         ]})
 
     async def pic(request):
@@ -58,10 +59,10 @@ async def test_flow(fake, aiohttp_client_session=None):
         assert devs[0].serial == "S1" and devs[0].name == "Feeder"
         evs = await api.async_get_events("S1", 10)
         assert [e.alarm_id for e in evs] == ["a2", "a1"]  # newest first
-        assert evs[0].label is None and evs[1].label == "Blue Tit"
+        assert not evs[0].is_bird and evs[0].species == []
+        assert evs[1].is_bird and evs[1].primary_species == "Blue Tit" and evs[1].bird_count == 1
         assert evs[1].timestamp == 1700000000
         assert fake["logins"] == 2  # re-login after 401
-        assert await api.async_get_event_picture("S1", "a1") == b"JPEG"
 
         bad = BirdfyApi(s, "a@b.hu", hash_password("nope"), "android-1")
         with pytest.raises(BirdfyAuthError):

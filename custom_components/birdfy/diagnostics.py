@@ -59,7 +59,7 @@ async def async_get_config_entry_diagnostics(
     coordinator = entry.runtime_data
     devices = []
     for state in coordinator.states.values():
-        last = state.last_event
+        last = state.last_visit
         status_counts: dict[str, int] = {}
         for e in state.recent_events:
             key = f"type={e.raw.get('type')} ai={e.raw.get('aiRecognitionStatus')}"
@@ -68,8 +68,9 @@ async def async_get_config_entry_diagnostics(
             {
                 "device": _redact(state.device.raw),
                 "visits_today": state.visits_today,
-                "has_image": state.image is not None,
-                "last_event_label": last.label if last else None,
+                "motion_events_today": state.motion_events_today,
+                "species_today": state.species_today,
+                "last_visit_species": last.species if last else None,
                 "recent_status_counts": status_counts,
                 "recent_events": [_event_summary(e.raw) for e in state.recent_events],
             }

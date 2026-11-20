@@ -7,10 +7,10 @@
 ## English
 
 A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue).
-It brings **bird visits** into Home Assistant: who visited, when, a photo, and a
+It brings **bird visits** into Home Assistant: which species visited, when, and a
 daily count. There is no live video, only visits.
 
-> **Status: early test version (0.1).** The Birdfy cloud API is not public; this
+> **Status: early test version (0.2), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
@@ -20,18 +20,22 @@ For each camera on the account:
 
 | Entity | What it shows |
 |---|---|
-| `event.<camera>_bird_visit` | Fires on every new visit, with `species`, `visit_time` and `event_id` attributes. Use it as an automation trigger. |
-| `sensor.<camera>_last_visitor` | The label Birdfy gave the last visit (the species when AI recognition identified it) |
+| `event.<camera>_bird_visit` | Fires on every new bird visit. Attributes: `species` (main species), `species_list`, `bird_count`, `confidence`, `candidates` (other possible species), `visit_time`, `event_id`. Use it as an automation trigger. |
+| `sensor.<camera>_last_visitor` | Species of the last visit (same attributes as the event) |
 | `sensor.<camera>_last_visit` | Time of the last visit |
-| `sensor.<camera>_visits_today` | Number of visits today (resets at midnight) |
-| `image.<camera>_last_visit_photo` | Snapshot of the last visit |
+| `sensor.<camera>_visits_today` | Bird visits today, with a per-species breakdown in the `species` attribute (resets at midnight) |
+| `sensor.<camera>_motion_events_today` | All motion events today, birds or not (disabled by default) |
+
+A **visit** is a motion event in which Birdfy's AI recognised at least one bird.
+Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
 
 ### How it works
 
 - The integration polls the Birdfy cloud (every 60 s by default, adjustable in
   the integration options). A visit shows up in Home Assistant with that much delay.
-- Species names come from Birdfy's own AI recognition, which may need an active
-  Birdfy subscription.
+- Species names come from Birdfy's own AI recognition (in English), which may
+  need an active Birdfy subscription.
+- Visit photos are not available yet.
 - Visits that happened before the integration started do not fire events.
 
 ### Security and privacy
@@ -42,8 +46,6 @@ For each camera on the account:
   of it, so only that hash is saved in the config entry. (MD5 is what the Birdfy
   service requires; treat the hash as sensitive anyway.)
 - Session tokens are kept in memory only and are never logged.
-- Snapshots are downloaded once per visit and kept in memory; their temporary
-  download links are not stored.
 - Diagnostics downloads redact email, serial numbers, IDs and URLs.
 
 ### Installation (HACS)
@@ -90,10 +92,10 @@ Not affiliated with Birdfy or Netvue.
 ## Magyar
 
 Home Assistant integráció a **Birdfy** madáretető-kamerákhoz (gyártó: Netvue).
-A **madárlátogatásokat** hozza be a Home Assistantbe: ki jött, mikor, fotóval, és
-napi számlálóval. Élő videó nincs benne, csak a látogatások.
+A **madárlátogatásokat** hozza be a Home Assistantbe: milyen madár jött, mikor,
+és napi számlálóval. Élő videó nincs benne, csak a látogatások.
 
-> **Állapot: korai tesztverzió (0.1).** A Birdfy felhő API-ja nem nyilvános, az
+> **Állapot: korai tesztverzió (0.2), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
 > integráció a közösség által visszafejtett működésre épül. Még nincs minden
 > Birdfy-modellen kipróbálva.
 
@@ -103,11 +105,14 @@ Kamerákként:
 
 | Entitás | Mit mutat |
 |---|---|
-| `event.<kamera>_bird_visit` | Minden új látogatáskor jelez, `species` (faj), `visit_time` és `event_id` attribútummal. Automatizálás indítására való. |
-| `sensor.<kamera>_last_visitor` | Az utolsó látogatás Birdfy-címkéje (a madárfaj, ha az MI felismerte) |
+| `event.<kamera>_bird_visit` | Minden új madárlátogatáskor jelez. Attribútumok: `species` (fő faj), `species_list`, `bird_count` (madarak száma), `confidence`, `candidates` (további lehetséges fajok), `visit_time`, `event_id`. Automatizálás indítására való. |
+| `sensor.<kamera>_last_visitor` | Az utolsó látogató faja (ugyanazokkal az attribútumokkal) |
 | `sensor.<kamera>_last_visit` | Az utolsó látogatás ideje |
-| `sensor.<kamera>_visits_today` | A mai látogatások száma (éjfélkor nullázódik) |
-| `image.<kamera>_last_visit_photo` | Az utolsó látogatás fotója |
+| `sensor.<kamera>_visits_today` | A mai madárlátogatások száma, fajonkénti bontással a `species` attribútumban (éjfélkor nullázódik) |
+| `sensor.<kamera>_motion_events_today` | Az összes mai mozgásesemény, madárral vagy anélkül (alapból kikapcsolva) |
+
+**Látogatásnak** az a mozgásesemény számít, amelyen a Birdfy MI-je legalább egy
+madarat felismert. A madár nélküli mozgás (szél, mókus, macska) nem látogatás.
 
 Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
 
@@ -116,7 +121,8 @@ Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
 - Az integráció időnként lekérdezi a Birdfy felhőt (alapból 60 másodpercenként,
   ez az integráció beállításaiban módosítható). Egy látogatás ennyi késéssel
   jelenik meg a Home Assistantben.
-- A fajneveket a Birdfy saját MI-felismerése adja, ehhez Birdfy-előfizetés kellhet.
+- A fajneveket a Birdfy saját MI-felismerése adja (angolul), ehhez Birdfy-előfizetés kellhet.
+- A látogatások fotója egyelőre nem érhető el.
 - Az integráció indulása előtti látogatásokra nem jön esemény.
 
 ### Biztonság és adatvédelem
@@ -128,8 +134,6 @@ Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
   hash-e kell, ezért csak ez kerül a beállításokba. (Az MD5-öt a Birdfy szervere
   követeli meg; a hash-t ettől még bizalmasan kell kezelni.)
 - A munkamenet-tokenek csak a memóriában vannak, és soha nem kerülnek a naplóba.
-- A fotók látogatásonként egyszer töltődnek le, és a memóriában maradnak; az
-  ideiglenes letöltési linkek nincsenek tárolva.
 - A diagnosztikai letöltésből ki vannak takarva az e-mail-cím, a sorozatszámok,
   az azonosítók és a linkek.
 

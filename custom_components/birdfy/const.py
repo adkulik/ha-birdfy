@@ -16,7 +16,7 @@ MIN_SCAN_INTERVAL: Final = 30
 MAX_SCAN_INTERVAL: Final = 900
 
 # How many recent events are requested on each poll.
-EVENT_FETCH_LIMIT: Final = 50
+EVENT_FETCH_LIMIT: Final = 100
 
 EVENT_TYPE_VISIT: Final = "bird_visit"
 

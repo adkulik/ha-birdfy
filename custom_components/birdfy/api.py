@@ -96,13 +96,25 @@ class BirdfyDevice:
 
 @dataclass
 class BirdfyEvent:
-    """One bird visit / motion event."""
+    """One motion event from the camera, with Birdfy's AI result."""
 
     alarm_id: str
     timestamp: float  # seconds since epoch
-    label: str | None
-    record_url: str | None
+    ai_status: str | None
+    species: list[str]  # most frequent first
+    bird_count: int
+    confidence: int | None
+    candidates: list[str]
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    @property
+    def is_bird(self) -> bool:
+        """True when Birdfy's AI found at least one bird."""
+        return bool(self.species) or self.ai_status == "auto_success"
+
+    @property
+    def primary_species(self) -> str | None:
+        return self.species[0] if self.species else None
 
     @classmethod
     def from_api(cls, data: dict[str, Any]) -> BirdfyEvent | None:
@@ -112,21 +124,53 @@ class BirdfyEvent:
         ts = float(data.get("alertTime") or data.get("time") or 0)
         if ts > 1e12:  # milliseconds
             ts /= 1000
-        record_url = None
         desc = data.get("description")
         if isinstance(desc, str) and desc:
             try:
                 desc = json.loads(desc)
             except ValueError:
                 desc = None
-        if isinstance(desc, dict):
-            record_url = desc.get("recordUrl") or None
-        label = data.get("label")
+        if not isinstance(desc, dict):
+            desc = {}
+
+        counts: dict[str, int] = {}
+        tracks: set[str] = set()
+        confidence: int | None = None
+        labels = desc.get("aiLabels")
+        if isinstance(labels, dict):
+            for frame in labels.values():
+                for group in frame if isinstance(frame, list) else []:
+                    if not isinstance(group, dict) or group.get("name", "bird") != "bird":
+                        continue
+                    for obj in group.get("objects") or []:
+                        if not isinstance(obj, dict):
+                            continue
+                        name = str(obj.get("desc") or "").strip()
+                        if name:
+                            counts[name] = counts.get(name, 0) + 1
+                        if obj.get("track") is not None:
+                            tracks.add(str(obj["track"]))
+                        conf = obj.get("confidence")
+                        if isinstance(conf, (int, float)):
+                            confidence = max(confidence or 0, int(conf))
+        species = sorted(counts, key=lambda n: -counts[n])
+
+        candidates: list[str] = []
+        cand = data.get("candidates")
+        if isinstance(cand, dict):
+            for names in cand.values():
+                for name in names if isinstance(names, list) else []:
+                    if isinstance(name, str) and name not in candidates and name not in species:
+                        candidates.append(name)
+
         return cls(
             alarm_id=str(alarm_id),
             timestamp=ts,
-            label=str(label).strip() if label else None,
-            record_url=record_url,
+            ai_status=data.get("aiRecognitionStatus"),
+            species=species,
+            bird_count=len(tracks) or (1 if species else 0),
+            confidence=confidence,
+            candidates=candidates,
             raw=data,
         )
 
@@ -235,11 +279,11 @@ class BirdfyApi:
             except (aiohttp.ClientError, TimeoutError, ValueError) as err:
                 raise BirdfyError(f"Request failed: {type(err).__name__}") from err
 
-            if status in (401, 403) and attempt == 1:
+            if status == 401 and attempt == 1:
                 _LOGGER.debug("Birdfy session expired, logging in again")
                 self._token = None
                 continue
-            if status in (401, 403):
+            if status == 401:
                 raise BirdfyAuthError(f"Request rejected (HTTP {status})")
             if status >= 400:
                 raise BirdfyError(f"HTTP {status} from Birdfy API")
@@ -269,24 +313,3 @@ class BirdfyApi:
         events = [e for e in (BirdfyEvent.from_api(i) for i in items if isinstance(i, dict)) if e]
         events.sort(key=lambda e: e.timestamp, reverse=True)
         return events
-
-    async def async_get_event_picture(self, serial: str, alarm_id: str) -> bytes | None:
-        """Download the snapshot of one event (the presigned URL is not kept)."""
-        data = await self._get(f"{self.api_base}/devices/{serial}/events/{alarm_id}/pic")
-        data = _unwrap(data) if isinstance(data, dict) else data
-        url = data.get("url") if isinstance(data, dict) else None
-        if not url:
-            _LOGGER.debug(
-                "No snapshot URL; response keys: %s",
-                sorted(data.keys()) if isinstance(data, dict) else type(data).__name__,
-            )
-            return None
-        try:
-            async with self._session.get(url, timeout=REQUEST_TIMEOUT) as resp:
-                if resp.status != 200:
-                    _LOGGER.debug("Snapshot download failed: HTTP %s", resp.status)
-                    return None
-                return await resp.read()
-        except (aiohttp.ClientError, TimeoutError) as err:
-            _LOGGER.debug("Snapshot download failed: %s", type(err).__name__)
-            return None
