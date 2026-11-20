@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Birdfy-fiók",
+        "description": "Jelentkezz be egy olyan Birdfy-fiókkal, amely hozzáfér a kamerádhoz. Javasolt egy külön fiók, amellyel a kamera meg van osztva. A jelszó nem, csak annak hash-e kerül tárolásra.",
+        "data": {
+          "email": "E-mail",
+          "password": "Jelszó"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Újra bejelentkezés",
+        "description": "A(z) {email} Birdfy-bejelentkezése már nem működik. Add meg újra a jelszót.",
+        "data": {
+          "password": "Jelszó"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Hibás e-mail-cím vagy jelszó.",
+      "cannot_connect": "A Birdfy felhő nem érhető el.",
+      "no_devices": "A bejelentkezés sikerült, de ezen a fiókon nincs kamera.",
+      "unknown": "Váratlan hiba, részletek a naplóban."
+    },
+    "abort": {
+      "already_configured": "Ez a Birdfy-fiók már be van állítva.",
+      "reauth_successful": "Sikeres újra bejelentkezés.",
+      "wrong_account": "Ez egy másik Birdfy-fiók."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Birdfy beállítások",
+        "data": {
+          "scan_interval": "Új látogatások ellenőrzése ennyi időnként"
+        }
+      }
+    }
+  },
+  "entity": {
+    "event": {
+      "visit": {
+        "name": "Madárlátogatás",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "bird_visit": "Madárlátogatás"
+            }
+          }
+        }
+      }
+    },
+    "image": {
+      "last_visit_image": { "name": "Utolsó látogatás fotója" }
+    },
+    "sensor": {
+      "last_visitor": { "name": "Utolsó látogató" },
+      "last_visit": { "name": "Utolsó látogatás" },
+      "visits_today": { "name": "Mai látogatások", "unit_of_measurement": "látogatás" }
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Birdfy account",
+        "description": "Sign in with a Birdfy account that has access to your camera. A separate account that the camera is shared with is recommended. Only a hash of the password is stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in again",
+        "description": "The Birdfy login for {email} no longer works. Enter the password again.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "cannot_connect": "Could not reach the Birdfy cloud.",
+      "no_devices": "Login worked, but no camera was found on this account.",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "already_configured": "This Birdfy account is already set up.",
+      "reauth_successful": "Signed in again.",
+      "wrong_account": "This is a different Birdfy account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Birdfy options",
+        "data": {
+          "scan_interval": "Check for new visits every"
+        }
+      }
+    }
+  },
+  "entity": {
+    "event": {
+      "visit": {
+        "name": "Bird visit",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "bird_visit": "Bird visit"
+            }
+          }
+        }
+      }
+    },
+    "image": {
+      "last_visit_image": { "name": "Last visit photo" }
+    },
+    "sensor": {
+      "last_visitor": { "name": "Last visitor" },
+      "last_visit": { "name": "Last visit" },
+      "visits_today": { "name": "Visits today", "unit_of_measurement": "visits" }
+    }
+  }
+}

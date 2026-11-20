@@ -1,0 +1,68 @@
+"""API client tests against a fake Birdfy server."""
+from aiohttp import web
+import pytest
+
+from custom_components.birdfy import api as api_mod
+from custom_components.birdfy.api import BirdfyApi, BirdfyAuthError, hash_password
+
+
+@pytest.fixture
+async def fake(socket_enabled, aiohttp_server, monkeypatch):
+    state = {"logins": 0, "expire_once": True}
+
+    async def login(request):
+        body = await request.json()
+        state["logins"] += 1
+        if body["password"] != hash_password("ok"):
+            return web.json_response({"ret": 1001, "msg": "bad"})
+        return web.json_response({"ret": 0, "token": "TOK", "userID": 7, "region": "eu-central-1"})
+
+    async def devices(request):
+        assert request.headers["x-nvs-signature"]
+        return web.json_response({"devices": [{"serialNumber": "S1", "deviceName": "Feeder"}]})
+
+    async def events(request):
+        if state["expire_once"]:
+            state["expire_once"] = False
+            return web.json_response({}, status=401)
+        return web.json_response({"events": [
+            {"alarmId": "a1", "alertTime": 1700000000000, "label": "Blue Tit", "description": "{}"},
+            {"alarmId": "a2", "alertTime": 1700000100000, "label": "", "description": "bad json"},
+        ]})
+
+    async def pic(request):
+        return web.json_response({"url": str(request.url.with_path("/img.jpg"))})
+
+    async def img(request):
+        return web.Response(body=b"JPEG")
+
+    app = web.Application()
+    app.router.add_post("/login", login)
+    app.router.add_get("/v1/devices/v3", devices)
+    app.router.add_get("/devices/{sn}/events", events)
+    app.router.add_get("/devices/{sn}/events/{id}/pic", pic)
+    app.router.add_get("/img.jpg", img)
+    server = await aiohttp_server(app)
+    base = str(server.make_url(""))
+    monkeypatch.setattr(api_mod, "LOGIN_URL", base + "/login")
+    monkeypatch.setattr(api_mod, "DEFAULT_LOCAL_ENDPOINT", base)
+    monkeypatch.setattr(BirdfyApi, "api_base", property(lambda self: base))
+    return state
+
+
+async def test_flow(fake, aiohttp_client_session=None):
+    import aiohttp
+    async with aiohttp.ClientSession() as s:
+        api = BirdfyApi(s, "A@B.hu", hash_password("ok"), "android-1")
+        devs = await api.async_get_devices()
+        assert devs[0].serial == "S1" and devs[0].name == "Feeder"
+        evs = await api.async_get_events("S1", 10)
+        assert [e.alarm_id for e in evs] == ["a2", "a1"]  # newest first
+        assert evs[0].label is None and evs[1].label == "Blue Tit"
+        assert evs[1].timestamp == 1700000000
+        assert fake["logins"] == 2  # re-login after 401
+        assert await api.async_get_event_picture("S1", "a1") == b"JPEG"
+
+        bad = BirdfyApi(s, "a@b.hu", hash_password("nope"), "android-1")
+        with pytest.raises(BirdfyAuthError):
+            await bad.async_login()
