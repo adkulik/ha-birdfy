@@ -101,6 +101,10 @@ class BirdfyDevice:
         )
 
 
+# Labels Birdfy uses for a bird whose species it could not identify.
+GENERIC_LABELS: frozenset[str] = frozenset({"bird", "unknown bird", "unknown"})
+
+
 @dataclass
 class BirdfyEvent:
     """One motion event from the camera, with Birdfy's AI result."""
@@ -180,6 +184,11 @@ class BirdfyEvent:
                         if isinstance(conf, (int, float)):
                             confidence = max(confidence or 0, int(conf))
         species = sorted(counts, key=lambda n: -counts[n])
+        # A bare "Bird" label means Birdfy saw a bird but couldn't tell the
+        # species; drop it when the visit already has a real species.
+        named = [n for n in species if n.casefold() not in GENERIC_LABELS]
+        if named:
+            species = named
 
         candidates: list[str] = []
         cand = data.get("candidates")

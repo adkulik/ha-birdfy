@@ -76,3 +76,18 @@ async def test_flow(fake, aiohttp_client_session=None):
         bad = BirdfyApi(s, "a@b.hu", hash_password("nope"), "android-1")
         with pytest.raises(BirdfyAuthError):
             await bad.async_login()
+
+
+def test_generic_bird_label_dropped_next_to_species():
+    import json, time
+    from custom_components.birdfy.api import BirdfyEvent
+
+    def make(*labels):
+        frames = {str(i): [{"name": "bird", "objects": [{"desc": n, "confidence": 80, "track": str(i)}]}]
+                  for i, n in enumerate(labels)}
+        return BirdfyEvent.from_api({"type": 50, "alarmId": "x", "alertTime": int(time.time() * 1000),
+                                     "description": json.dumps({"aiLabels": frames}),
+                                     "aiRecognitionStatus": "auto_success"})
+
+    assert make("Great Tit", "Bird", "Great Tit").species == ["Great Tit"]
+    assert make("Bird", "Bird").species == ["Bird"]  # nothing better to show
