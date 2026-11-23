@@ -14,5 +14,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/adkulik/ha-birdfy/issues",
   "requirements": [],
-  "version": "0.5.1"
+  "version": "0.5.2"
 }

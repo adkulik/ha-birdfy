@@ -123,6 +123,9 @@ async def test_setup_and_new_visit(hass):
         assert event_state.attributes["event_type"] == "bird_visit"
         assert hass.states.get("sensor.eteto_last_visitor").state == "Robin"
         assert hass.states.get("sensor.eteto_visits_today").state == "3"
+        # The Wren counts too, even though the Robin is the main species.
+        assert hass.states.get("sensor.eteto_visits_today").attributes["species"] == {
+            "Great Tit": 1, "Blue Tit": 1, "Robin": 1, "Wren": 1}
         assert hass.states.get("image.eteto_last_visit_photo").attributes["species"] == "Robin"
         assert entry.runtime_data.states["SN123"].photo == b"JPEG-e5"
 

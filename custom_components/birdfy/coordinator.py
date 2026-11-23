@@ -54,11 +54,16 @@ class BirdfyDeviceState:
         return len(self.today_motion_ids)
 
     def species_today(self, language: str = "en") -> dict[str, int]:
-        """Visits per species today (by each visit's main species)."""
+        """Visits per species today.
+
+        Every species seen in a visit counts, not only the main one, so a
+        blue tit that shows up next to two great tits is still listed.
+        """
         counts: dict[str, int] = {}
         for visit in self.today_visits.values():
-            name = translate(visit.primary_species, language) or "unknown"
-            counts[name] = counts.get(name, 0) + 1
+            names = {translate(n, language) or "unknown" for n in visit.species}
+            for name in names or {"unknown"}:
+                counts[name] = counts.get(name, 0) + 1
         return dict(sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
