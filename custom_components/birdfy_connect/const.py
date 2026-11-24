@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Final
 
-DOMAIN: Final = "birdfy"
+DOMAIN: Final = "birdfy_connect"
 
 CONF_PASSWORD_HASH: Final = "password_hash"
 CONF_UDID: Final = "udid"

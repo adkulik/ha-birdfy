@@ -14,9 +14,9 @@ from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
 )
 
-from custom_components.birdfy.api import BirdfyAuthError, BirdfyDevice, BirdfyEvent, hash_password
-from custom_components.birdfy.const import CONF_PASSWORD_HASH, CONF_UDID, DOMAIN
-from custom_components.birdfy.diagnostics import async_get_config_entry_diagnostics
+from custom_components.birdfy_connect.api import BirdfyAuthError, BirdfyDevice, BirdfyEvent, hash_password
+from custom_components.birdfy_connect.const import CONF_PASSWORD_HASH, CONF_UDID, DOMAIN
+from custom_components.birdfy_connect.diagnostics import async_get_config_entry_diagnostics
 
 DEVICE = BirdfyDevice(serial="SN123", name="Etető", model="Cam2 Pro", raw={
     "serialNumber": "SN123", "deviceName": "Etető", "ownerEmail": "own@x.hu", "ownerNickname": "Zsiga",
@@ -42,7 +42,7 @@ def ev(alarm_id, label, ago, extra=None):
 
 
 def api_patch(events):
-    p = "custom_components.birdfy.api.BirdfyApi"
+    p = "custom_components.birdfy_connect.api.BirdfyApi"
     return [
         patch(f"{p}.async_login", AsyncMock()),
         patch(f"{p}.user_id", "42"),
@@ -59,7 +59,7 @@ async def test_config_flow(hass):
     try:
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
         assert result["type"] is FlowResultType.FORM
-        with patch("custom_components.birdfy.async_setup_entry", return_value=True):
+        with patch("custom_components.birdfy_connect.async_setup_entry", return_value=True):
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_EMAIL: "a@b.hu", CONF_PASSWORD: "titok"}
             )
@@ -73,7 +73,7 @@ async def test_config_flow(hass):
 
 
 async def test_config_flow_bad_auth(hass):
-    with patch("custom_components.birdfy.api.BirdfyApi.async_login", AsyncMock(side_effect=BirdfyAuthError)):
+    with patch("custom_components.birdfy_connect.api.BirdfyApi.async_login", AsyncMock(side_effect=BirdfyAuthError)):
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {CONF_EMAIL: "a@b.hu", CONF_PASSWORD: "x"}
@@ -147,14 +147,14 @@ async def test_auth_failure_starts_reauth(hass):
     entry = MockConfigEntry(domain=DOMAIN, unique_id="42", data={
         CONF_EMAIL: "a@b.hu", CONF_PASSWORD_HASH: "h", CONF_UDID: "android-x"})
     entry.add_to_hass(hass)
-    with patch("custom_components.birdfy.api.BirdfyApi.async_get_devices", AsyncMock(side_effect=BirdfyAuthError("x"))):
+    with patch("custom_components.birdfy_connect.api.BirdfyApi.async_get_devices", AsyncMock(side_effect=BirdfyAuthError("x"))):
         assert not await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert any(f["context"]["source"] == "reauth" for f in hass.config_entries.flow.async_progress())
 
 
 def test_hungarian_names():
-    from custom_components.birdfy.species import translate
+    from custom_components.birdfy_connect.species import translate
     assert translate("Great Tit", "hu") == "Széncinege"
     assert translate("Eurasian Blue Tit", "hu") == "Kék cinege"
     assert translate("European Robin", "hu") == "Vörösbegy"
@@ -164,7 +164,7 @@ def test_hungarian_names():
 
 
 async def test_hungarian_entities(hass):
-    from custom_components.birdfy.const import CONF_SPECIES_LANGUAGE
+    from custom_components.birdfy_connect.const import CONF_SPECIES_LANGUAGE
     hass.config.language = "hu"
     events = [ev("e2", "Great Tit", 60, extra="Eurasian Blue Tit"), ev("e1", "Great Tit", 600)]
     entry = MockConfigEntry(domain=DOMAIN, unique_id="42", data={
@@ -198,7 +198,7 @@ async def test_hungarian_entities(hass):
 
 def test_add_candidates():
     from webrtc_models import RTCIceCandidateInit
-    from custom_components.birdfy.camera import add_candidates
+    from custom_components.birdfy_connect.camera import add_candidates
     offer = "v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\na=group:BUNDLE 0 1\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:1\r\n"
     out = add_candidates(offer, [
         RTCIceCandidateInit("candidate:1 1 udp 2122260223 192.168.1.5 50000 typ host", sdp_mid="0"),
@@ -215,12 +215,12 @@ async def test_live_view(hass):
     from webrtc_models import RTCIceCandidateInit
     from homeassistant.components.camera import WebRTCAnswer, WebRTCError
     from homeassistant.helpers import entity_component
-    from custom_components.birdfy.api import BirdfyLiveError
+    from custom_components.birdfy_connect.api import BirdfyLiveError
     events = [ev("e1", "Great Tit", 60)]
     entry = MockConfigEntry(domain=DOMAIN, unique_id="42", data={
         CONF_EMAIL: "a@b.hu", CONF_PASSWORD_HASH: "h", CONF_UDID: "android-x"})
     entry.add_to_hass(hass)
-    p = "custom_components.birdfy.api.BirdfyApi"
+    p = "custom_components.birdfy_connect.api.BirdfyApi"
     start = AsyncMock(return_value="SN123_0_LIVING")
     open_ = AsyncMock(return_value="v=0\r\nanswer\r\n")
     close = AsyncMock()

@@ -12,7 +12,7 @@ A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue)
 It brings **bird visits** into Home Assistant: which species visited, when, a
 photo, a daily count, and a **live view** of the camera.
 
-> **Status: early test version (0.5), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
+> **Status: early test version (0.6), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
@@ -76,7 +76,15 @@ Click the button above, or add the repository by hand:
 2. Install **Birdfy**, then restart Home Assistant.
 3. Settings → Devices & services → **Add integration** → **Birdfy**, and sign in, or click:
 
-[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy)
+[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy_connect)
+
+**Upgrading from 0.5.x or earlier:** from 0.6.0 the integration's domain is
+`birdfy_connect` (it was `birdfy`, which clashed with another integration in HACS).
+Home Assistant treats it as a new integration, so: delete the Birdfy entry under
+Settings → Devices & services, update in HACS and restart, delete the old
+`custom_components/birdfy` folder if it is still there, then add **Birdfy** again
+and sign in. Entity IDs come from the camera and entity names, so they normally
+stay the same.
 
 ### Example automation
 
@@ -95,7 +103,7 @@ actions:
 ### Troubleshooting
 
 If something does not work on your model, enable debug logging for
-`custom_components.birdfy`, and download the diagnostics from the integration page.
+`custom_components.birdfy_connect`, and download the diagnostics from the integration page.
 Open an issue with both (they contain no passwords or tokens).
 
 ### Support
@@ -123,7 +131,7 @@ Home Assistant integráció a **Birdfy** madáretető-kamerákhoz (gyártó: Net
 A **madárlátogatásokat** hozza be a Home Assistantbe: milyen madár jött, mikor,
 fotóval, napi számlálóval és a kamera **élőképével**.
 
-> **Állapot: korai tesztverzió (0.5), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
+> **Állapot: korai tesztverzió (0.6), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
 > integráció a közösség által visszafejtett működésre épül. Még nincs minden
 > Birdfy-modellen kipróbálva.
 
@@ -192,12 +200,20 @@ Kattints a fenti gombra, vagy add hozzá kézzel a tárolót:
 2. Telepítsd a **Birdfy**-t, majd indítsd újra a Home Assistantot.
 3. Beállítások → Eszközök és szolgáltatások → **Integráció hozzáadása** → **Birdfy**, és jelentkezz be, vagy kattints ide:
 
-[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy)
+[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy_connect)
+
+**Frissítés 0.5.x-ről vagy korábbiról:** a 0.6.0-tól az integráció azonosítója
+`birdfy_connect` (korábban `birdfy` volt, ami ütközött egy másik HACS-integrációval).
+A Home Assistant ezt új integrációnak látja, ezért: töröld a Birdfy bejegyzést a
+Beállítások → Eszközök és szolgáltatások alatt, frissíts a HACS-ben és indítsd újra
+a HA-t, töröld a régi `custom_components/birdfy` mappát, ha még megvan, majd add
+hozzá újra a **Birdfy**-t és jelentkezz be. Az entitásazonosítók a kamera és az
+entitások nevéből jönnek, így általában változatlanok maradnak.
 
 ### Hibakeresés
 
 Ha a modelleden valami nem működik, kapcsold be a debug naplózást a
-`custom_components.birdfy`-ra, és töltsd le a diagnosztikát az integráció
+`custom_components.birdfy_connect`-ra, és töltsd le a diagnosztikát az integráció
 oldaláról. Mindkettőt csatold egy issue-hoz (jelszót és tokent nem tartalmaznak).
 
 ### Támogatás

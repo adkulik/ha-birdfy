@@ -1,5 +1,5 @@
 {
-  "domain": "birdfy",
+  "domain": "birdfy_connect",
   "name": "Birdfy",
   "categories": [
     "security_safety.cameras",
@@ -14,5 +14,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/adkulik/ha-birdfy/issues",
   "requirements": [],
-  "version": "0.5.3"
+  "version": "0.6.0"
 }

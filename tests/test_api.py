@@ -2,8 +2,8 @@
 from aiohttp import web
 import pytest
 
-from custom_components.birdfy import api as api_mod
-from custom_components.birdfy.api import BirdfyApi, BirdfyAuthError, hash_password
+from custom_components.birdfy_connect import api as api_mod
+from custom_components.birdfy_connect.api import BirdfyApi, BirdfyAuthError, hash_password
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ async def test_flow(fake, aiohttp_client_session=None):
 
 def test_generic_bird_label_dropped_next_to_species():
     import json, time
-    from custom_components.birdfy.api import BirdfyEvent
+    from custom_components.birdfy_connect.api import BirdfyEvent
 
     def make(*labels):
         frames = {str(i): [{"name": "bird", "objects": [{"desc": n, "confidence": 80, "track": str(i)}]}]
