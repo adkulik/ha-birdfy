@@ -82,14 +82,5 @@
         "name": "Live view (second lens)"
       }
     }
-  },
-  "selector": {
-    "species_language": {
-      "options": {
-        "auto": "Same as Home Assistant",
-        "hu": "Hungarian",
-        "en": "English (as Birdfy sends them)"
-      }
-    }
   }
 }

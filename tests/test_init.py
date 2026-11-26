@@ -261,3 +261,54 @@ async def test_live_view(hass):
     finally:
         for x in patches:
             x.stop()
+
+
+def test_resolve_language():
+    from custom_components.birdfy_connect.species import resolve_language
+    available = {"de": "Deutsch", "hu": "Magyar", "nb": "Norsk", "pt": "Português",
+                 "pt-BR": "Português (Brasil)", "zh-Hans": "简体中文"}
+    assert resolve_language("auto", "de", available) == "de"
+    assert resolve_language("auto", "pt-BR", available) == "pt-BR"
+    assert resolve_language("auto", "nn", available) == "nb"
+    assert resolve_language("auto", "zh-Hant", available) == "zh-Hans"
+    assert resolve_language("auto", "xx", available) == "en"
+    assert resolve_language("de", "hu", available) == "de"
+    assert resolve_language("xx", "hu", available) == "en"
+
+
+def test_ioc_names():
+    from custom_components.birdfy_connect.species import load_language, translate
+    for lang in ("de", "fr", "hu"):
+        load_language(lang)
+    assert translate("Great Tit", "de") == "Kohlmeise"
+    assert translate("Blue Tit", "de") == "Blaumeise"  # IOC: Eurasian Blue Tit
+    assert translate("Robin", "de") == "Rotkehlchen"  # IOC: European Robin
+    assert translate("Great Tit", "fr") == "Mésange charbonnière"
+    assert translate("Great Tit", "hu") == "Széncinege"  # curated name wins
+    assert translate("Some Unknown Bird", "de") == "Some Unknown Bird"
+
+
+async def test_german_entities(hass):
+    hass.config.language = "de"
+    events = [ev("e2", "Great Tit", 60, extra="Eurasian Blue Tit")]
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="42", data={
+        CONF_EMAIL: "a@b.hu", CONF_PASSWORD_HASH: "h", CONF_UDID: "android-x"})
+    entry.add_to_hass(hass)
+    patches = api_patch(events)
+    for p in patches:
+        p.start()
+    try:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        photo = next(s for s in hass.states.async_all("image"))
+        assert photo.attributes["species"] == "Kohlmeise"
+        assert photo.attributes["species_list"] == ["Kohlmeise", "Blaumeise"]
+        assert photo.attributes["species_en"] == "Great Tit"
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        values = [o["value"] for o in result["data_schema"].schema["species_language"].config["options"]]
+        assert values[:2] == ["auto", "en"] and "de" in values and "hu" in values
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    finally:
+        for p in patches:
+            p.stop()

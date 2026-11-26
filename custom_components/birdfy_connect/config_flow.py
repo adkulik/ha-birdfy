@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -36,12 +37,12 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SPECIES_LANGUAGE,
     CONF_UDID,
-    SPECIES_LANGUAGES,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
 )
+from .species import available_languages
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -163,6 +164,16 @@ class BirdfyOptionsFlow(OptionsFlow):
             )
         current = self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         language = self.config_entry.options.get(CONF_SPECIES_LANGUAGE, "auto")
+        available = await self.hass.async_add_executor_job(available_languages)
+        languages = [
+            SelectOptionDict(value="auto", label="Same as Home Assistant"),
+            SelectOptionDict(value="en", label="English (as Birdfy sends them)"),
+        ] + [
+            SelectOptionDict(value=code, label=native)
+            for code, native in sorted(available.items(), key=lambda kv: kv[1].casefold())
+        ]
+        if language not in ("auto", "en") and language not in available:
+            language = "auto"
         schema = vol.Schema(
             {
                 vol.Required(CONF_SCAN_INTERVAL, default=current): NumberSelector(
@@ -176,8 +187,7 @@ class BirdfyOptionsFlow(OptionsFlow):
                 ),
                 vol.Required(CONF_SPECIES_LANGUAGE, default=language): SelectSelector(
                     SelectSelectorConfig(
-                        options=SPECIES_LANGUAGES,
-                        translation_key=CONF_SPECIES_LANGUAGE,
+                        options=languages,
                         mode=SelectSelectorMode.DROPDOWN,
                     )
                 ),

@@ -1,11 +1,23 @@
-"""Hungarian names for the bird species Birdfy reports (in English).
+"""Species names in the user's language.
 
-Covers the usual garden and feeder visitors in Central Europe. Names that are
-not in the list stay in English.
+Birdfy reports species in English. They are translated with the Multilingual
+IOC World Bird List (see scripts/build_species_names.py), loaded one language
+at a time from species_names/. The hand-picked Hungarian names below take
+precedence over the IOC ones. Names that can't be matched stay in English.
 """
 
 from __future__ import annotations
 
+import gzip
+import json
+import logging
+from pathlib import Path
+
+_LOGGER = logging.getLogger(__name__)
+
+DATA_DIR = Path(__file__).parent / "species_names"
+
+# Curated Hungarian names for common Central European feeder visitors.
 HU_NAMES: dict[str, str] = {
     # Tits
     "great tit": "Széncinege",
@@ -87,20 +99,92 @@ HU_NAMES: dict[str, str] = {
 
 _PREFIXES = ("eurasian ", "european ", "common ", "western ", "northern ")
 
+_index: dict[str, int] | None = None
+_names: dict[str, list[str]] = {}
+
+
+def _normalize(name: str) -> str:
+    return " ".join(name.strip().lower().replace("\u2019", "'").split())
+
+
+def _keys(name: str) -> list[str]:
+    key = _normalize(name)
+    keys = [key]
+    for prefix in _PREFIXES:
+        if key.startswith(prefix):
+            keys.append(key[len(prefix):])
+    return keys
+
+
+def _read(path: Path):
+    return json.loads(gzip.decompress(path.read_bytes()))
+
+
+def available_languages() -> dict[str, str]:
+    """Language codes with species names, mapped to their native names (blocking)."""
+    try:
+        return json.loads((DATA_DIR / "languages.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"hu": "Magyar"}
+
+
+def load_language(language: str) -> None:
+    """Load the names for one language into memory (blocking: run in an executor)."""
+    global _index
+    if language == "en" or language in _names:
+        return
+    path = DATA_DIR / f"{language}.json.gz"
+    if not path.exists():
+        return
+    try:
+        if _index is None:
+            _index = _read(DATA_DIR / "index.json.gz")
+        _names[language] = _read(path)
+    except (OSError, ValueError) as err:
+        _LOGGER.warning("Could not load species names for %s: %s", language, err)
+
+
+def resolve_language(choice: str, ha_language: str | None, available: dict[str, str]) -> str:
+    """Turn the option ("auto" or a code) into a language that has names."""
+    if choice != "auto":
+        return choice if choice == "en" or choice in available else "en"
+    lang = ha_language or "en"
+    candidates = [lang, lang.split("-")[0]]
+    if lang in ("nn", "no"):
+        candidates.append("nb")
+    if lang.startswith("zh"):
+        traditional = lang in ("zh-Hant", "zh-TW", "zh-HK")
+        candidates += ["zh-Hant", "zh-Hans"] if traditional else ["zh-Hans", "zh-Hant"]
+    for code in candidates:
+        if code in available:
+            return code
+    return "en"
+
 
 def hungarian_name(name: str) -> str | None:
-    """Return the Hungarian name, or None if it is not known."""
-    key = name.strip().lower()
-    if key in HU_NAMES:
-        return HU_NAMES[key]
-    for prefix in _PREFIXES:
-        if key.startswith(prefix) and key[len(prefix):] in HU_NAMES:
-            return HU_NAMES[key[len(prefix):]]
+    """Return the curated Hungarian name, or None if it is not known."""
+    for key in _keys(name):
+        if key in HU_NAMES:
+            return HU_NAMES[key]
+    return None
+
+
+def localized_name(name: str, language: str) -> str | None:
+    """Return the name in the given language, or None if it is not known."""
+    if language == "hu" and (curated := hungarian_name(name)):
+        return curated
+    names = _names.get(language)
+    if not names or _index is None:
+        return None
+    for key in _keys(name):
+        number = _index.get(key)
+        if number is not None and number < len(names) and names[number]:
+            return names[number]
     return None
 
 
 def translate(name: str | None, language: str) -> str | None:
     """Translate one species name to the chosen language (en keeps it)."""
-    if not name or language != "hu":
+    if not name or language == "en":
         return name
-    return hungarian_name(name) or name
+    return localized_name(name, language) or name
