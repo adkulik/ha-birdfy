@@ -82,14 +82,5 @@
         "name": "Élőkép (második kamera)"
       }
     }
-  },
-  "selector": {
-    "species_language": {
-      "options": {
-        "auto": "A Home Assistant nyelve szerint",
-        "hu": "Magyar",
-        "en": "Angol (ahogy a Birdfy adja)"
-      }
-    }
   }
 }

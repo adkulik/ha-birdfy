@@ -12,7 +12,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .species import translate
+from .species import available_languages, load_language, resolve_language, translate
 from .api import BirdfyApi, BirdfyAuthError, BirdfyDevice, BirdfyError, BirdfyEvent
 from .const import (
     CONF_SCAN_INTERVAL,
@@ -88,14 +88,18 @@ class BirdfyCoordinator(DataUpdateCoordinator[dict[str, BirdfyDeviceState]]):
         self.api = api
         self.states: dict[str, BirdfyDeviceState] = {}
         self._devices_fetched_at = None
+        self.available_languages: dict[str, str] = {}
 
     @property
     def language(self) -> str:
-        """Language for species names: 'hu' or 'en'."""
+        """Language code for species names ('en' keeps Birdfy's names)."""
         choice = self.config_entry.options.get(CONF_SPECIES_LANGUAGE, "auto")
-        if choice == "auto":
-            return "hu" if (self.hass.config.language or "").startswith("hu") else "en"
-        return choice
+        return resolve_language(choice, self.hass.config.language, self.available_languages)
+
+    async def async_load_species_names(self) -> None:
+        """Load the species names for the chosen language off the event loop."""
+        self.available_languages = await self.hass.async_add_executor_job(available_languages)
+        await self.hass.async_add_executor_job(load_language, self.language)
 
     def translate(self, name: str | None) -> str | None:
         return translate(name, self.language)

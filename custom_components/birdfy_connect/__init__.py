@@ -22,6 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: BirdfyConfigEntry) -> bo
         entry.data[CONF_UDID],
     )
     coordinator = BirdfyCoordinator(hass, entry, api)
+    await coordinator.async_load_species_names()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
 

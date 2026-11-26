@@ -4,21 +4,15 @@
 [![GitHub release](https://img.shields.io/github/v/release/adkulik/ha-birdfy)](https://github.com/adkulik/ha-birdfy/releases)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/adkulik)
 
-[🇬🇧 English](#english) | [🇭🇺 Magyar](#magyar)
-
----
-
-## English
-
 A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue).
 It brings **bird visits** into Home Assistant: which species visited, when, a
 photo, a daily count, and a **live view** of the camera.
 
-> **Status: early test version (0.6), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
+> **Status: early test version (0.7), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
-### What you get
+## What you get
 
 For each camera on the account:
 
@@ -36,20 +30,34 @@ For each camera on the account:
 A **visit** is a motion event in which Birdfy's AI recognised at least one bird.
 Motion events without a bird (wind, a squirrel, a cat) do not count as visits.
 
-### How it works
+## How it works
 
 - The integration polls the Birdfy cloud (every 60 s by default, adjustable in
   the integration options). A visit shows up in Home Assistant with that much delay.
 - Species names come from Birdfy's own AI recognition, which may need an active
-  Birdfy subscription. Birdfy sends them in English; the integration can show
-  them in **Hungarian** (common garden and feeder birds). By default it follows
-  the Home Assistant language; change it under the integration's **Configure**
-  options. The English name is always kept in the `species_en` attribute.
+  Birdfy subscription. Birdfy sends them in English; the integration shows
+  them in your language (see [Species names](#species-names)).
 - The photo of the latest visit is downloaded once and kept in memory only;
   its temporary download link is not stored or logged.
 - Visits that happened before the integration started do not fire events.
 
-### Live view
+## Species names
+
+Birdfy names the species in English. The integration translates them with the
+[IOC World Bird List](https://www.worldbirdnames.org/) multilingual names, which
+cover every bird species of the world in 40+ languages, including German,
+French, Spanish, Italian, Dutch, Polish, Czech, Swedish, Japanese and Chinese.
+
+- By default the names follow the Home Assistant language. To pick another one,
+  open the integration → **Configure** → **Language of species names**. Choose
+  **English** to keep Birdfy's own names.
+- The English name is always kept in the `species_en` attribute, so automations
+  can rely on it whatever the language.
+- If a name can't be matched (Birdfy sometimes uses short or regional names), it
+  stays in English. Spotted one? Please
+  [open an issue](https://github.com/adkulik/ha-birdfy/issues) with the English name.
+
+## Live view
 
 The camera entities use Home Assistant's built-in WebRTC support, so any camera
 card (or the more-info dialog) shows the live picture, also in the Home
@@ -58,7 +66,7 @@ browser; Home Assistant only passes the connection setup through, so it does no
 video processing. The camera wakes up only while you are watching, and a live
 session is closed after 10 minutes to save the battery.
 
-### Security and privacy
+## Security and privacy
 
 - Use a **separate Birdfy account** that the camera is shared with, not your main
   account. Logging in from Home Assistant may log the mobile app out of the same account.
@@ -68,7 +76,7 @@ session is closed after 10 minutes to save the battery.
 - Session tokens are kept in memory only and are never logged.
 - Diagnostics downloads redact email, serial numbers, IDs and URLs.
 
-### Installation (HACS)
+## Installation (HACS)
 
 [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
 
@@ -94,7 +102,7 @@ Settings → Devices & services, update in HACS and restart, delete the old
 and sign in. Entity IDs come from the camera and entity names, so they normally
 stay the same.
 
-### Example automation
+## Example automation
 
 ```yaml
 triggers:
@@ -108,13 +116,13 @@ actions:
         image: /api/image_proxy/image.feeder_last_visit_photo
 ```
 
-### Troubleshooting
+## Troubleshooting
 
 If something does not work on your model, enable debug logging for
 `custom_components.birdfy_connect`, and download the diagnostics from the integration page.
 Open an issue with both (they contain no passwords or tokens).
 
-### Support
+## Support
 
 This integration is free and will stay free. If you find it useful, you can support further development:
 
@@ -122,120 +130,17 @@ This integration is free and will stay free. If you find it useful, you can supp
 
 Recurring support is available through [GitHub Sponsors](https://github.com/sponsors/adkulik).
 
-### Credits
+## Credits
 
 The cloud protocol details come from community reverse-engineering work, in
 particular [aubreybailey/birdfy](https://github.com/aubreybailey/birdfy) and
 [sebsst/birdfy-rtsp](https://github.com/sebsst/birdfy-rtsp). This integration is
 an independent implementation.
 
+Species names: Gill F, D Donsker & P Rasmussen (Eds), IOC World Bird List,
+multilingual version compiled by Peter Kovalik —
+[worldbirdnames.org](https://www.worldbirdnames.org/), licensed under a
+Creative Commons Attribution (CC BY) licence.
+
 Not affiliated with Birdfy or Netvue.
 
----
-
-## Magyar
-
-Home Assistant integráció a **Birdfy** madáretető-kamerákhoz (gyártó: Netvue).
-A **madárlátogatásokat** hozza be a Home Assistantbe: milyen madár jött, mikor,
-fotóval, napi számlálóval és a kamera **élőképével**.
-
-> **Állapot: korai tesztverzió (0.6), Birdfy Cam 2 Pro-n kipróbálva.** A Birdfy felhő API-ja nem nyilvános, az
-> integráció a közösség által visszafejtett működésre épül. Még nincs minden
-> Birdfy-modellen kipróbálva.
-
-### Mit kapsz
-
-Kamerákként:
-
-| Entitás | Mit mutat |
-|---|---|
-| `event.<kamera>_bird_visit` | Minden új madárlátogatáskor jelez. Attribútumok: `species` (fő faj), `species_en` (angol név), `species_list`, `bird_count` (madarak száma), `confidence`, `candidates` (további lehetséges fajok), `visit_time`, `event_id`. Automatizálás indítására való. |
-| `sensor.<kamera>_last_visitor` | Az utolsó látogató faja (ugyanazokkal az attribútumokkal) |
-| `sensor.<kamera>_last_visit` | Az utolsó látogatás ideje |
-| `sensor.<kamera>_visits_today` | A mai madárlátogatások száma, fajonkénti bontással a `species` attribútumban (éjfélkor nullázódik) |
-| `sensor.<kamera>_motion_events_today` | Az összes mai mozgásesemény, madárral vagy anélkül (alapból kikapcsolva) |
-| `image.<kamera>_last_visit_photo` | Az utolsó madárlátogatás fotója |
-| `camera.<kamera>_live_view` | Élőkép (fő kamera). Állóképként az utolsó látogatás fotóját mutatja |
-| `camera.<kamera>_live_view_second_lens` | A második kamera élőképe (kétkamerás modelleknél) |
-
-**Látogatásnak** az a mozgásesemény számít, amelyen a Birdfy MI-je legalább egy
-madarat felismert. A madár nélküli mozgás (szél, mókus, macska) nem látogatás.
-
-Magyar nyelvű HA-ban az entitások nevei magyarul jelennek meg.
-
-### Hogyan működik
-
-- Az integráció időnként lekérdezi a Birdfy felhőt (alapból 60 másodpercenként,
-  ez az integráció beállításaiban módosítható). Egy látogatás ennyi késéssel
-  jelenik meg a Home Assistantben.
-- A fajneveket a Birdfy saját MI-felismerése adja, ehhez Birdfy-előfizetés kellhet.
-  A Birdfy angolul küldi őket, az integráció **magyarul** is meg tudja jeleníteni
-  (a gyakori kerti és madáretető-látogató fajokat). Alapból a Home Assistant
-  nyelvét követi; ez az integráció **Konfigurálás** menüjében átállítható. Az
-  angol név mindig megmarad a `species_en` attribútumban.
-- Az utolsó látogatás fotója egyszer töltődik le, és csak a memóriában marad;
-  az ideiglenes letöltési link nincs tárolva és naplózva.
-- Az integráció indulása előtti látogatásokra nem jön esemény.
-
-### Élőkép
-
-A kamera-entitások a Home Assistant beépített WebRTC-támogatását használják, így
-bármelyik kamerakártya (vagy a részletek ablak) mutatja az élőképet, a Home
-Assistant appban is. A videó a Birdfy relay-szerveréről közvetlenül a
-böngészőbe megy; a Home Assistant csak a kapcsolat felépítését közvetíti, videót
-nem dolgoz fel. A kamera csak nézés közben ébred fel, és egy élő munkamenet
-10 perc után lezárul, hogy kímélje az akkumulátort.
-
-### Biztonság és adatvédelem
-
-- Használj **külön Birdfy-fiókot**, amellyel a kamera meg van osztva, ne a fő
-  fiókodat. A Home Assistantből való bejelentkezés kiléptetheti a mobilappot
-  ugyanabból a fiókból.
-- Maga a jelszó **nincs tárolva**: a Birdfy-bejelentkezéshez csak a jelszó MD5
-  hash-e kell, ezért csak ez kerül a beállításokba. (Az MD5-öt a Birdfy szervere
-  követeli meg; a hash-t ettől még bizalmasan kell kezelni.)
-- A munkamenet-tokenek csak a memóriában vannak, és soha nem kerülnek a naplóba.
-- A diagnosztikai letöltésből ki vannak takarva az e-mail-cím, a sorozatszámok,
-  az azonosítók és a linkek.
-
-### Telepítés (HACS)
-
-[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
-
-A Birdfy benne van a HACS alapkatalógusában, így semmit sem kell kézzel hozzáadnod:
-
-1. Nyisd meg a HACS-t, és keress rá a **Birdfy**-ra (vagy kattints a fenti gombra).
-   Két integráció is ezt a nevet viseli – az **adkulik** félét válaszd (`adkulik/ha-birdfy`).
-2. Töltsd le, majd indítsd újra a Home Assistantot.
-3. Beállítások → Eszközök és szolgáltatások → **Integráció hozzáadása** → **Birdfy**, és jelentkezz be, vagy kattints ide:
-
-[![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy_connect)
-
-**Ha a keresés nem találja a Birdfy-t** (pl. a HACS még nem frissítette a
-katalógusát), add hozzá egyéni tárolóként: HACS → ⋮ → **Egyéni tárolók** →
-`https://github.com/adkulik/ha-birdfy`, típus: **Integráció**, majd folytasd a
-2. lépéstől.
-
-**Frissítés 0.5.x-ről vagy korábbiról:** a 0.6.0-tól az integráció azonosítója
-`birdfy_connect` (korábban `birdfy` volt, ami ütközött egy másik HACS-integrációval).
-A Home Assistant ezt új integrációnak látja, ezért: töröld a Birdfy bejegyzést a
-Beállítások → Eszközök és szolgáltatások alatt, frissíts a HACS-ben és indítsd újra
-a HA-t, töröld a régi `custom_components/birdfy` mappát, ha még megvan, majd add
-hozzá újra a **Birdfy**-t és jelentkezz be. Az entitásazonosítók a kamera és az
-entitások nevéből jönnek, így általában változatlanok maradnak.
-
-### Hibakeresés
-
-Ha a modelleden valami nem működik, kapcsold be a debug naplózást a
-`custom_components.birdfy_connect`-ra, és töltsd le a diagnosztikát az integráció
-oldaláról. Mindkettőt csatold egy issue-hoz (jelszót és tokent nem tartalmaznak).
-
-### Támogatás
-
-Az integráció ingyenes, és az is marad. Ha hasznosnak találod, támogathatod a további fejlesztést:
-
-<a href="https://buymeacoffee.com/adkulik"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="50"></a>
-
-Rendszeres támogatás a [GitHub Sponsors](https://github.com/sponsors/adkulik) oldalon lehetséges.
-
-Nem áll kapcsolatban a Birdfy-jal vagy a Netvue-val.

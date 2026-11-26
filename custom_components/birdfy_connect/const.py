@@ -11,7 +11,6 @@ CONF_PASSWORD_HASH: Final = "password_hash"
 CONF_UDID: Final = "udid"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_SPECIES_LANGUAGE: Final = "species_language"
-SPECIES_LANGUAGES: Final = ["auto", "hu", "en"]
 
 DEFAULT_SCAN_INTERVAL: Final = 60  # seconds
 MIN_SCAN_INTERVAL: Final = 30
