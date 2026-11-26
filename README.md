@@ -70,13 +70,19 @@ session is closed after 10 minutes to save the battery.
 
 [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
 
-Click the button above, or add the repository by hand:
+Birdfy is in the HACS default catalog, so you don't need to add anything by hand:
 
-1. HACS → ⋮ → **Custom repositories** → add `https://github.com/adkulik/ha-birdfy`, type **Integration**.
-2. Install **Birdfy**, then restart Home Assistant.
+1. Open HACS and search for **Birdfy** (or click the button above). Two
+   integrations share the name — pick the one by **adkulik** (`adkulik/ha-birdfy`).
+2. Download it, then restart Home Assistant.
 3. Settings → Devices & services → **Add integration** → **Birdfy**, and sign in, or click:
 
 [![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy_connect)
+
+**If Birdfy doesn't show up in the search** (e.g. HACS hasn't refreshed its
+catalog yet), add it as a custom repository instead: HACS → ⋮ → **Custom
+repositories** → add `https://github.com/adkulik/ha-birdfy`, type
+**Integration**, then continue from step 2.
 
 **Upgrading from 0.5.x or earlier:** from 0.6.0 the integration's domain is
 `birdfy_connect` (it was `birdfy`, which clashed with another integration in HACS).
@@ -194,13 +200,19 @@ nem dolgoz fel. A kamera csak nézés közben ébred fel, és egy élő munkamen
 
 [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
 
-Kattints a fenti gombra, vagy add hozzá kézzel a tárolót:
+A Birdfy benne van a HACS alapkatalógusában, így semmit sem kell kézzel hozzáadnod:
 
-1. HACS → ⋮ → **Egyéni tárolók** → `https://github.com/adkulik/ha-birdfy`, típus: **Integráció**.
-2. Telepítsd a **Birdfy**-t, majd indítsd újra a Home Assistantot.
+1. Nyisd meg a HACS-t, és keress rá a **Birdfy**-ra (vagy kattints a fenti gombra).
+   Két integráció is ezt a nevet viseli – az **adkulik** félét válaszd (`adkulik/ha-birdfy`).
+2. Töltsd le, majd indítsd újra a Home Assistantot.
 3. Beállítások → Eszközök és szolgáltatások → **Integráció hozzáadása** → **Birdfy**, és jelentkezz be, vagy kattints ide:
 
 [![Open your Home Assistant instance and start setting up Birdfy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=birdfy_connect)
+
+**Ha a keresés nem találja a Birdfy-t** (pl. a HACS még nem frissítette a
+katalógusát), add hozzá egyéni tárolóként: HACS → ⋮ → **Egyéni tárolók** →
+`https://github.com/adkulik/ha-birdfy`, típus: **Integráció**, majd folytasd a
+2. lépéstől.
 
 **Frissítés 0.5.x-ről vagy korábbiról:** a 0.6.0-tól az integráció azonosítója
 `birdfy_connect` (korábban `birdfy` volt, ami ütközött egy másik HACS-integrációval).
