@@ -1,5 +1,7 @@
 # Birdfy for Home Assistant
 
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=adkulik&repository=ha-birdfy&category=integration)
+[![GitHub release](https://img.shields.io/github/v/release/adkulik/ha-birdfy)](https://github.com/adkulik/ha-birdfy/releases)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/adkulik)
 
 [🇬🇧 English](#english) | [🇭🇺 Magyar](#magyar)
