@@ -8,7 +8,7 @@ A Home Assistant integration for **Birdfy** bird feeder cameras (made by Netvue)
 It brings **bird visits** into Home Assistant: which species visited, when, a
 photo, a daily count, and a **live view** of the camera.
 
-> **Status: early test version (0.7), tested on a Birdfy Cam 2 Pro.** The Birdfy cloud API is not public; this
+> **Status: early test version (0.7), tested on a Birdfy Feeder 2 Pro.** The Birdfy cloud API is not public; this
 > integration uses what the community has reverse-engineered. It has not yet been
 > confirmed on every Birdfy model.
 
@@ -65,6 +65,14 @@ Assistant app. The video goes from the Birdfy relay server straight to your
 browser; Home Assistant only passes the connection setup through, so it does no
 video processing. The camera wakes up only while you are watching, and a live
 session is closed after 10 minutes to save the battery.
+
+**Not every account gets the Birdfy relay.** For some accounts the Birdfy cloud
+offers live view only through Agora, a proprietary video service that Home
+Assistant (and go2rtc) can't play. The integration then asks for the relay once
+more; if that fails too, the live view entity logs a warning and shows the last
+visit photo instead until Home Assistant restarts. Everything else (visits,
+species, photos, events) works the same. If this happens to you, please add your
+details to [issue #3](https://github.com/adkulik/ha-birdfy/issues/3).
 
 ## Security and privacy
 

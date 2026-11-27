@@ -257,6 +257,18 @@ async def test_live_view(hass):
         msgs.clear()
         await cam.async_handle_async_webrtc_offer(offer, "s2", msgs.append)
         assert isinstance(msgs[0], WebRTCError)
+        assert cam.supported_features  # a passing error keeps live view on
+
+        # Agora-only account: fall back to the last visit photo
+        from custom_components.birdfy_connect.api import BirdfyLiveUnsupported
+        start.side_effect = BirdfyLiveUnsupported("only AGORA_WEBRTC")
+        msgs.clear()
+        await cam.async_handle_async_webrtc_offer(offer, "s3", msgs.append)
+        assert isinstance(msgs[0], WebRTCError) and msgs[0].code == "birdfy_live_unsupported"
+        assert not cam.supported_features
+        assert await cam.async_camera_image() == b"JPEG-e1"
+        other = hass.data["entity_components"]["camera"].get_entity("camera.eteto_live_view_second_lens")
+        assert other.supported_features  # decided per entity
         assert await hass.config_entries.async_unload(entry.entry_id)
     finally:
         for x in patches:
@@ -312,3 +324,21 @@ async def test_german_entities(hass):
     finally:
         for p in patches:
             p.stop()
+
+
+async def test_live_start_asks_relay_again():
+    from custom_components.birdfy_connect.api import BirdfyApi, BirdfyLiveUnsupported
+    api = BirdfyApi.__new__(BirdfyApi)
+    api._region = "eu"
+    agora = {"data": {"provider": "AGORA_WEBRTC", "appId": "x"}}
+    relay = {"data": {"provider": "NV_RELAY", "sessionKey": "SN_0"}}
+    with patch.object(BirdfyApi, "_request", AsyncMock(side_effect=[agora, relay])) as req:
+        assert await api.async_live_start("SN", 0) == "SN_0"
+        assert [c.kwargs["json_body"]["provider"] for c in req.call_args_list] == ["AGORA_WEBRTC", "NV_RELAY"]
+    with patch.object(BirdfyApi, "_request", AsyncMock(side_effect=[agora, agora])):
+        try:
+            await api.async_live_start("SN", 0)
+        except BirdfyLiveUnsupported as err:
+            assert "AGORA_WEBRTC" in str(err)
+        else:
+            raise AssertionError("expected BirdfyLiveUnsupported")
