@@ -46,6 +46,10 @@ class BirdfyLiveError(BirdfyError):
     """Live view could not be started."""
 
 
+class BirdfyLiveUnsupported(BirdfyLiveError):
+    """The cloud offers live view only over a provider we can't play (Agora)."""
+
+
 def hash_password(password: str) -> str:
     """Return the password hash the Birdfy login expects (MD5 hex)."""
     return hashlib.md5(password.encode()).hexdigest()  # noqa: S324 - required by the Birdfy API
@@ -400,27 +404,41 @@ class BirdfyApi:
     # --- Live view (WebRTC through the Birdfy relay, as the Birdfy web app does) ---
 
     async def async_live_start(self, serial: str, sensor: int) -> str:
-        """Ask the camera for a live session; returns the relay session key."""
-        data = await self._request(
-            "POST",
-            f"https://{self._region}-api2.netvue.co/devices/{serial}/play",
-            json_body={
-                "serialNumber": serial,
-                "callType": 0,
-                "sensorId": sensor,
-                "provider": "AGORA_WEBRTC",
-                "mediaBackendVersion": MEDIA_BACKEND,
-            },
-        )
-        data = _unwrap(data) if isinstance(data, dict) else {}
-        provider = data.get("provider")
-        session_key = data.get("sessionKey")
-        if provider != "NV_RELAY" or not session_key:
-            _LOGGER.debug(
-                "Live start not usable: provider=%s keys=%s", provider, sorted(data.keys())
+        """Ask the camera for a live session; returns the relay session key.
+
+        The Birdfy web app asks for AGORA_WEBRTC and the cloud normally answers
+        with its own relay (NV_RELAY), which Home Assistant can play. Some
+        accounts get an Agora session instead; then ask for the relay
+        explicitly once before giving up.
+        """
+        provider = None
+        for requested in ("AGORA_WEBRTC", "NV_RELAY"):
+            data = await self._request(
+                "POST",
+                f"https://{self._region}-api2.netvue.co/devices/{serial}/play",
+                json_body={
+                    "serialNumber": serial,
+                    "callType": 0,
+                    "sensorId": sensor,
+                    "provider": requested,
+                    "mediaBackendVersion": MEDIA_BACKEND,
+                },
             )
-            raise BirdfyLiveError(f"Unsupported live provider: {provider}")
-        return str(session_key)
+            data = _unwrap(data) if isinstance(data, dict) else {}
+            provider = data.get("provider")
+            session_key = data.get("sessionKey")
+            if provider == "NV_RELAY" and session_key:
+                return str(session_key)
+            _LOGGER.debug(
+                "Live start not usable (asked for %s): provider=%s keys=%s",
+                requested,
+                provider,
+                sorted(data.keys()),
+            )
+        raise BirdfyLiveUnsupported(
+            f"Birdfy offers this camera's live view only over {provider or 'an unknown provider'}, "
+            "which Home Assistant can't play"
+        )
 
     async def async_live_open(
         self, serial: str, sensor: int, session_key: str, external_id: str, offer: str

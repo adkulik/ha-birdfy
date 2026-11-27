@@ -24,7 +24,7 @@ from homeassistant.components.camera import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .api import BirdfyError
+from .api import BirdfyError, BirdfyLiveUnsupported
 from .coordinator import BirdfyConfigEntry, BirdfyCoordinator
 from .entity import BirdfyEntity
 
@@ -151,6 +151,11 @@ class BirdfyLiveCamera(BirdfyEntity, Camera):
             answer = await api.async_live_open(
                 serial, self._sensor, session.session_key, session.external_id, offer
             )
+        except BirdfyLiveUnsupported as err:
+            self._sessions.pop(session_id, None)
+            self._disable_live(str(err))
+            send_message(WebRTCError("birdfy_live_unsupported", str(err)))
+            return
         except BirdfyError as err:
             _LOGGER.warning("Birdfy live view could not start: %s", err)
             self._sessions.pop(session_id, None)
@@ -165,6 +170,20 @@ class BirdfyLiveCamera(BirdfyEntity, Camera):
         session.timer = self.hass.loop.call_later(
             MAX_SESSION_SECONDS, self.close_webrtc_session, session_id
         )
+
+    @callback
+    def _disable_live(self, reason: str) -> None:
+        """Fall back to the last visit photo when live view can't be played."""
+        if not self._attr_supported_features:
+            return
+        _LOGGER.warning(
+            "%s: %s. Live view is turned off for this entity until Home Assistant "
+            "restarts; it shows the last visit photo instead",
+            self.entity_id,
+            reason,
+        )
+        self._attr_supported_features = CameraEntityFeature(0)
+        self.async_write_ha_state()
 
     async def async_on_webrtc_candidate(
         self, session_id: str, candidate: RTCIceCandidateInit
